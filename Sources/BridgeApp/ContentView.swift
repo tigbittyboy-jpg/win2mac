@@ -76,33 +76,34 @@ struct ContentView: View {
                     }.tag(app.id)
                 }
             }.frame(minWidth: 240)
-            VStack(alignment: .leading, spacing: 16) {
-                if let app = model.selectedApplication {
-                    Text(app.name).font(.title2)
-                    Text(app.executable.path).font(.caption).textSelection(.enabled)
-                    Picker("Bottle", selection: Binding(get: { model.selectedApplication?.bottleID }, set: { model.associateSelectedApplication($0) })) {
-                        Text("Select a bottle").tag(nil as UUID?)
-                        ForEach(model.snapshot.bottles) { bottle in Text(bottle.name).tag(Optional(bottle.id)) }
-                    }.disabled(!model.canEdit)
-                    if let bottle = model.snapshot.bottles.first(where: { $0.id == app.bottleID }),
-                       let runtime = model.snapshot.runtimes.first(where: { $0.id == bottle.runtimeID }) {
-                        Text("Runtime: \(runtime.name) (\(runtime.architecture.rawValue))")
-                        Text("Prefix: \(bottle.prefix.path)").font(.caption).textSelection(.enabled)
-                        graphicsPicker(bottle)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if let app = model.selectedApplication {
+                        Text(app.name).font(.title2)
+                        Text(app.executable.path).font(.caption).textSelection(.enabled)
+                        Picker("Bottle", selection: Binding(get: { model.selectedApplication?.bottleID }, set: { model.associateSelectedApplication($0) })) {
+                            Text("Select a bottle").tag(nil as UUID?)
+                            ForEach(model.snapshot.bottles) { bottle in Text(bottle.name).tag(Optional(bottle.id)) }
+                        }.disabled(!model.canEdit)
+                        if let bottle = model.snapshot.bottles.first(where: { $0.id == app.bottleID }),
+                           let runtime = model.snapshot.runtimes.first(where: { $0.id == bottle.runtimeID }) {
+                            Text("Runtime: \(runtime.name) (\(runtime.architecture.rawValue))")
+                            Text("Prefix: \(bottle.prefix.path)").font(.caption).textSelection(.enabled)
+                            graphicsPicker(bottle)
+                        }
+                        Text("Arguments — one argument per line; spaces stay inside an argument").font(.caption)
+                        TextEditor(text: $model.argumentsText).font(.system(.body, design: .monospaced))
+                            .frame(height: 90).border(Color.secondary.opacity(0.3)).disabled(!model.canEdit)
+                        Button("Save Arguments") { model.saveArguments() }.disabled(!model.canEdit)
+                        Button("Launch", systemImage: "play.fill") { model.requestLaunch() }
+                            .buttonStyle(.borderedProminent).disabled(!model.canEdit)
+                        Text("Importing an EXE does not run it or copy it. Installers use the selected prefix; add the installed application's EXE separately afterward.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        ContentUnavailableView("No application selected", systemImage: "square.grid.2x2", description: Text("Use Select EXE to import a Windows x64 application. Configure a runtime and bottle before launching."))
                     }
-                    Text("Arguments — one argument per line; spaces stay inside an argument").font(.caption)
-                    TextEditor(text: $model.argumentsText).font(.system(.body, design: .monospaced))
-                        .frame(height: 90).border(Color.secondary.opacity(0.3)).disabled(!model.canEdit)
-                    Button("Save Arguments") { model.saveArguments() }.disabled(!model.canEdit)
-                    Button("Launch", systemImage: "play.fill") { model.requestLaunch() }
-                        .buttonStyle(.borderedProminent).disabled(!model.canEdit)
-                    Text("Importing an EXE does not run it or copy it. Installers use the selected prefix; add the installed application's EXE separately afterward.")
-                        .font(.caption).foregroundStyle(.secondary)
-                } else {
-                    ContentUnavailableView("No application selected", systemImage: "square.grid.2x2", description: Text("Use Select EXE to import a Windows x64 application. Configure a runtime and bottle before launching."))
-                }
-                Spacer()
-            }.padding().frame(minWidth: 350, maxWidth: .infinity, alignment: .leading)
+                }.padding().frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(minWidth: 350)
         }
     }
     private var runtimePicker: some View {

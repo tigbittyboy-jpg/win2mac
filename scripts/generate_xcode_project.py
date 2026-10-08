@@ -79,7 +79,7 @@ targets = []
 for target, kind in [("BridgeCore", "library.static"), ("Bridge", "application"), ("BridgeCoreTests", "bundle.unit-test")]:
     settings = dict(common)
     settings.update({"PRODUCT_NAME": "$(TARGET_NAME)", "PRODUCT_BUNDLE_IDENTIFIER": "org.bridge-launcher." + target,
-                     "GENERATE_INFOPLIST_FILE": "YES", "CURRENT_PROJECT_VERSION": "12",
+                     "GENERATE_INFOPLIST_FILE": "YES", "CURRENT_PROJECT_VERSION": "13",
                      "MARKETING_VERSION": "0.1.0"})
     linked = []
     dependencies = []
