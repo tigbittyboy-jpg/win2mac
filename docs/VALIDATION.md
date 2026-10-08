@@ -4,6 +4,10 @@ Implementation environment: x86_64 Linux, Debian 13; no Xcode, macOS SDK, Apple 
 
 After publishing the source to GitHub, the [macOS build/test workflow](https://github.com/tigbittyboy-jpg/win2mac/actions/runs/37824834771) **passed** for commit `bdf72dcb64b444609ff967dd6ee1ef22f582c0f9`. A hosted macOS 15 runner built the ARM64 app and completed the scheme's XCTest step. This verifies the macOS project build and tests; it does not verify interactive app behavior, signing/notarization, or Wine/Windows compatibility.
 
+The [v0.1.0-preview.5 package workflow](https://github.com/tigbittyboy-jpg/win2mac/actions/runs/37827680353) **passed** for commit `92880b1`: macOS XCTest, ARM64 Release build, ad hoc signature verification, app/framework architecture checks, a headless app/framework startup check, and public GitHub prerelease publication. The published ZIP was downloaded independently; its CRC integrity and SHA-256 matched, and its Mach-O files were confirmed ARM64 with macOS 14 minimum. SHA-256: `cfd6d9a58eec883d180e53695aea60b8cd3efd9d2854351413108ffa33954628`.
+
+The standalone startup check exposed a framework install-name bug that build/test alone missed: the app originally referenced `/Library/Frameworks/BridgeCore.framework`. The project generator now emits an `@rpath` install name so the bundled framework loads. This correction is included in the published preview. The package is ad hoc signed, not Developer ID signed or Apple-notarized. Interactive UI, Gatekeeper handling on a downloaded copy, and real Windows execution remain untested.
+
 ## Executed checks
 
 - Swift 6.0.3 compilation of every BridgeCore source file with Swift 6 strict concurrency: **passed**.
@@ -21,7 +25,7 @@ After publishing the source to GitHub, the [macOS build/test workflow](https://g
 
 ## Not executed — required before claiming the macOS prototype is validated
 
-1. On an Apple Silicon Mac with Xcode 16+ and macOS 14+, run `bash scripts/run_macos.sh` to build/test locally and open Bridge. Confirm app activation, embedded framework loading, ad hoc signing, and behavior on the minimum supported macOS. CI verified Apple-SDK compilation and project-driven XCTest, but did not open the app interactively.
+1. On an Apple Silicon Mac with macOS 14+, download and open the preview from GitHub Releases; Xcode is not required. Alternatively, with Xcode 16+ run `bash scripts/run_macos.sh` to build/test locally and open Bridge. Confirm interactive app activation, Gatekeeper handling, and behavior on the minimum supported macOS. CI verified Apple-SDK compilation, project-driven XCTest, bundle signatures, and headless app/framework startup, but did not exercise the window interactively.
    The startup script's shell syntax and Linux refusal were checked here; its macOS success path remains unexecuted. The published macOS workflow passed, without Windows compatibility tests.
 2. Test sidebar, EXE/runtime panels, argument editing, per-operation approval/cancel behavior, console streaming, nonzero-exit alerts, and restart persistence. Check file permissions and a deliberately corrupt library without losing the original.
 3. Use a legally obtained provider-supported x64 Wine runtime. Record vendor, full version, binary/wrapper architecture, minimum OS, Rosetta state, and existing graphics configuration. Verify its documented wrapper argument behavior and whether additional environment setup is required. An arbitrary engine's private internal binary may need an adapter.
