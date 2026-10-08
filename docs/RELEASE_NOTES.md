@@ -1,5 +1,7 @@
 Bridge Phase 1 preview for Apple Silicon Macs running macOS 14 or later.
 
+New **Graphics → WineD3D Vulkan (experimental)** selection in Library and Bottles requests the installed runtime's Vulkan renderer via `WINE_D3D_CONFIG=renderer=vulkan`. Settings save per bottle and are shown in launch approval/diagnostics. Choose **Runtime default** to revert. This installs no DLLs or graphics libraries, changes no prefix registry, and does not establish that a particular game will work. See [graphics troubleshooting](https://github.com/tigbittyboy-jpg/win2mac/blob/main/docs/GRAPHICS_TROUBLESHOOTING.md).
+
 Bottle setup now includes runtime scanning, executable selection, architecture/x64 configuration, and a clear empty state with installation links. Known installed Wine paths are inspected automatically at startup without execution. The Create Bottle action stays disabled until a runtime is selected and its compatibility settings are saved. Bridge still requires a separately installed Wine runtime; see [runtime setup](https://github.com/tigbittyboy-jpg/win2mac/blob/main/docs/RUNTIME_SETUP.md).
 
 Download **Bridge-macOS-arm64.zip** under Assets, extract it, and move Bridge.app to Applications. You do not need Xcode to use this app. The archive contains Bridge only; select your compatible, user-installed Wine runtime inside the app to run Windows x64 software. A runtime may require newer macOS or Rosetta.

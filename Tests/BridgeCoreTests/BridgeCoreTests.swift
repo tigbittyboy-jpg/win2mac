@@ -274,7 +274,31 @@ final class BridgeCoreTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(try graphics.environment(for: .runtimeDefault), [:])
         XCTAssertThrowsError(try graphics.environment(for: .d3dMetal))
         XCTAssertThrowsError(try graphics.environment(for: .dxvkMoltenVK))
-        XCTAssertEqual(graphics.capabilities().filter(\.configurable).count, 1)
+        XCTAssertThrowsError(try graphics.environment(for: .wineD3D))
+        XCTAssertEqual(Set(graphics.capabilities().filter(\.configurable).map(\.backend)), [.runtimeDefault, .wineD3DVulkan])
+    }
+    func testVulkanOverrideIsApprovedAndReversibleWithoutDLLChanges() async throws {
+        let engine = try runtime()
+        var bottle = try initializedBottle(runtime: engine)
+        bottle.graphics = .wineD3DVulkan
+        let application = ApplicationEntry(name: "Graphics test", executable: try exe(), bottleID: bottle.id)
+        let executor = MockExecutor(), runtimes = RuntimeManager(host: mac)
+        let service = LaunchService(executor: executor, runtimes: runtimes, bottles: BottleManager(runtimes: runtimes))
+        do { _ = try await service.launch(application, bottle: bottle, runtime: engine, approved: false, output: { _ in }); XCTFail() }
+        catch { XCTAssertEqual(error as? BridgeError, .approvalRequired) }
+        let denied = await executor.requests
+        XCTAssertTrue(denied.isEmpty)
+        _ = try await service.launch(application, bottle: bottle, runtime: engine, approved: true, output: { _ in })
+        bottle.graphics = .runtimeDefault
+        _ = try await service.launch(application, bottle: bottle, runtime: engine, approved: true, output: { _ in })
+        let requests = await executor.requests
+        XCTAssertEqual(requests.count, 2)
+        XCTAssertEqual(requests[0].environment["WINE_D3D_CONFIG"], "renderer=vulkan")
+        XCTAssertEqual(requests[0].environment["WINEPREFIX"], bottle.prefix.resolvingSymlinksInPath().path)
+        XCTAssertNil(requests[0].environment["WINEDLLOVERRIDES"])
+        XCTAssertNil(requests[1].environment["WINE_D3D_CONFIG"])
+        XCTAssertEqual(requests[0].arguments, [application.executable.path])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bottle.prefix.appendingPathComponent("user.reg").path))
     }
     func testDiagnosticsRedactsKnownAndOtherUserPaths() {
         let diagnostics = DiagnosticsService(home: URL(fileURLWithPath: "/Users/alice"), host: mac)

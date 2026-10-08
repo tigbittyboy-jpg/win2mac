@@ -31,7 +31,9 @@ struct ExecutionApproval: Identifiable {
         case .createBottle(let name, let prefix, let runtime):
             return "Initialize bottle ‘\(name)’ using:\n\(runtime.executable.path)\nArguments: wineboot, -u\nPrefix: \(prefix.path)"
         case .launch(let app, let bottle, let runtime):
-            return "Launch ‘\(app.name)’:\n\(app.executable.path)\nRuntime: \(runtime.executable.path)\nPrefix: \(bottle.prefix.path)\nAdditional arguments: \(app.arguments.joined(separator: " | "))"
+            let overrides = (try? GraphicsManager().environment(for: bottle.graphics)) ?? [:]
+            let settings = overrides.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: "\n")
+            return "Launch ‘\(app.name)’:\n\(app.executable.path)\nRuntime: \(runtime.executable.path)\nPrefix: \(bottle.prefix.path)\nGraphics: \(bottle.graphics.displayName)\n\(settings.isEmpty ? "Uses runtime graphics settings" : settings)\nAdditional arguments: \(app.arguments.joined(separator: " | "))"
         }
     }
 }
@@ -235,6 +237,17 @@ final class BridgeModel: ObservableObject {
             errorMessage = "Associate this application with a configured bottle first."; return
         }
         pendingApproval = ExecutionApproval(operation: .launch(app, bottle, runtime))
+    }
+    func setBottleGraphics(_ graphics: GraphicsBackend, bottleID: UUID) {
+        perform {
+            guard let index = self.snapshot.bottles.firstIndex(where: { $0.id == bottleID }) else {
+                throw BridgeError.invalidPrefix("This bottle is no longer in the library.")
+            }
+            let bottle = self.snapshot.bottles[index]
+            let updated = try await self.bottles.configure(bottle, name: bottle.name, graphics: graphics)
+            var next = self.snapshot; next.bottles[index] = updated
+            try await self.save(next)
+        }
     }
     func approve(_ request: ExecutionApproval) {
         pendingApproval = nil

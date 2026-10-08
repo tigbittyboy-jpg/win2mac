@@ -94,5 +94,37 @@ final class BridgeModelTests: XCTestCase, @unchecked Sendable {
         XCTAssertNotNil(model.errorMessage)
         XCTAssertEqual(try Data(contentsOf: file), original)
     }
+    @MainActor
+    func testBottleGraphicsPersistsAndApprovalShowsRequestedOverride() async throws {
+        let sample = try fixture(); defer { try? FileManager.default.removeItem(at: sample.root) }
+        let file = sample.root.appendingPathComponent("library.json")
+        let executor = MockExecutor()
+        let runtimes = RuntimeManager(executor: executor, host: host, discoveryPaths: [])
+        var engine = try runtimes.inspect(sample.runtime); engine.supportsWindowsX64 = true
+        let bottle = Bottle(name: "Existing bottle", prefix: sample.root.appendingPathComponent("prefix"), runtimeID: engine.id)
+        let app = ApplicationEntry(name: "Game", executable: sample.root.appendingPathComponent("Game.exe"), bottleID: bottle.id)
+        var snapshot = LibrarySnapshot(); snapshot.runtimes = [engine]; snapshot.bottles = [bottle]; snapshot.applications = [app]
+        let library = ApplicationLibrary(file: file); try await library.save(snapshot)
+        let model = BridgeModel(library: library, runtimes: runtimes, bottles: BottleManager(executor: executor, runtimes: runtimes))
+        await model.load()
+        model.setBottleGraphics(.wineD3DVulkan, bottleID: bottle.id)
+        try await waitForOperation(model)
+        XCTAssertNil(model.errorMessage)
+        let saved = try await ApplicationLibrary(file: file).load()
+        XCTAssertEqual(saved.bottles.first?.graphics, .wineD3DVulkan)
+        XCTAssertEqual(saved.bottles.first?.prefix, bottle.prefix)
+        model.requestLaunch()
+        let approval = try XCTUnwrap(model.pendingApproval)
+        XCTAssertTrue(approval.details.contains("WINE_D3D_CONFIG=renderer=vulkan"))
+        XCTAssertTrue(approval.details.contains("WineD3D Vulkan (experimental)"))
+        let commands = await executor.requests
+        XCTAssertTrue(commands.isEmpty, "Saving graphics/requesting approval must not run Wine")
+        model.pendingApproval = nil
+        model.setBottleGraphics(.runtimeDefault, bottleID: bottle.id)
+        try await waitForOperation(model)
+        let restored = try await library.load()
+        XCTAssertEqual(restored.bottles.first?.graphics, .runtimeDefault)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bottle.prefix.path))
+    }
 }
 #endif

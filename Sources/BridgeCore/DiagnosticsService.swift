@@ -23,6 +23,7 @@ public struct DiagnosticsService: DiagnosticsCollecting {
         let paths = snapshot.applications.map(\.executable) + snapshot.bottles.map(\.prefix) + snapshot.runtimes.map(\.executable)
         let runtimes = snapshot.runtimes.map { "\($0.name): \($0.architecture.rawValue), version: \($0.version ?? "unprobed"), x64 declared: \($0.supportsWindowsX64)" }.joined(separator: "\n")
         let exit = result.map { "\($0.exitCode) (signal: \($0.wasSignalled))" } ?? "No completed launch"
+        let graphics = snapshot.bottles.map { "\($0.name): \($0.graphics.displayName)" }.joined(separator: "\n")
         let report = """
         Bridge Phase 1 diagnostics — review before sharing
         OS: \(ProcessInfo.processInfo.operatingSystemVersionString)
@@ -30,6 +31,8 @@ public struct DiagnosticsService: DiagnosticsCollecting {
         Applications: \(snapshot.applications.count), bottles: \(snapshot.bottles.count)
         Runtimes (user-reported x64 capability is not a compatibility test):
         \(runtimes)
+        Configured bottle graphics (requested settings, not verified capabilities):
+        \(graphics)
         Last exit: \(exit)
         Recent console (may contain secrets even after path redaction):
         \(String(recentOutput.suffix(65_536)))

@@ -88,6 +88,7 @@ struct ContentView: View {
                        let runtime = model.snapshot.runtimes.first(where: { $0.id == bottle.runtimeID }) {
                         Text("Runtime: \(runtime.name) (\(runtime.architecture.rawValue))")
                         Text("Prefix: \(bottle.prefix.path)").font(.caption).textSelection(.enabled)
+                        graphicsPicker(bottle)
                     }
                     Text("Arguments — one argument per line; spaces stay inside an argument").font(.caption)
                     TextEditor(text: $model.argumentsText).font(.system(.body, design: .monospaced))
@@ -109,6 +110,24 @@ struct ContentView: View {
             Text("Select runtime").tag(nil as UUID?)
             ForEach(model.snapshot.runtimes) { runtime in Text(runtime.name + " — " + runtime.executable.path).tag(Optional(runtime.id)) }
         }.disabled(!model.canEdit)
+    }
+    private func graphicsPicker(_ bottle: Bottle) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Picker("Graphics", selection: Binding(get: {
+                model.snapshot.bottles.first(where: { $0.id == bottle.id })?.graphics ?? bottle.graphics
+            }, set: { model.setBottleGraphics($0, bottleID: bottle.id) })) {
+                ForEach(GraphicsManager().capabilities().filter(\.configurable), id: \.backend) { capability in
+                    Text(capability.backend.displayName).tag(capability.backend)
+                }
+                if !GraphicsManager().capabilities().contains(where: { $0.backend == bottle.graphics && $0.configurable }) {
+                    Text(bottle.graphics.displayName).tag(bottle.graphics)
+                }
+            }.disabled(!model.canEdit)
+            if bottle.graphics == .wineD3DVulkan {
+                Text("Requires Wine's Vulkan renderer and compatible Vulkan/Metal support in your installed runtime. Experimental; game compatibility is not guaranteed. Applies to all applications using this bottle.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
     }
     private var runtimeSelection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -172,7 +191,7 @@ struct ContentView: View {
                     Button("Use Existing Prefix…") { model.associateExistingPrefix() }
                         .disabled(!model.canEdit || model.selectedRuntime == nil)
                 }
-                Text("Creation needs a new directory and executes wineboot with approval. Existing prefixes must contain drive_c and system.reg. Graphics: use runtime defaults; no backend libraries are installed.").font(.caption)
+                Text("Creation needs a new directory and executes wineboot with approval. Existing prefixes must contain drive_c and system.reg. Graphics settings below affect future launches; no backend libraries are installed.").font(.caption)
                 Divider()
                 ForEach(model.snapshot.bottles) { bottle in
                     HStack {
@@ -180,6 +199,7 @@ struct ContentView: View {
                             Text(bottle.name).font(.headline)
                             Text(bottle.prefix.path).font(.caption).textSelection(.enabled)
                             Text(bottle.managed ? "Bridge-managed" : "External — association only").font(.caption).foregroundStyle(.secondary)
+                            graphicsPicker(bottle)
                         }
                         Spacer()
                         Button(bottle.managed ? "Delete…" : "Remove…", role: .destructive) { model.pendingRemoval = bottle }.disabled(!model.canEdit)
