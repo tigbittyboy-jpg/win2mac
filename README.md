@@ -13,7 +13,13 @@ A native SwiftUI Windows compatibility launcher for Apple Silicon Macs. **Phase 
 - Protocols and injected services; XCTest mocked execution and trusted system-process integration tests.
 - Graphics capability descriptions and conservative runtime-default configuration; diagnostic path redaction.
 
-## Run on a Mac
+## Download the preview app — no Xcode required
+
+Open [GitHub Releases](https://github.com/tigbittyboy-jpg/win2mac/releases), download **Bridge-macOS-arm64.zip** under Assets, extract it, and move Bridge.app to Applications. Requires Apple Silicon and macOS 14+; a chosen Wine runtime can require a newer OS. Xcode is only required to build the source.
+
+The preview is ad hoc signed and **not Apple-notarized**; macOS may block a downloaded preview. Bridge does not remove quarantine or disable Gatekeeper. Use a source build or wait for notarized distribution if macOS does not allow you to open it. See the release notes for signing details. No Wine engine is bundled; select a compatible installed runtime inside Bridge.
+
+## Build from source on a Mac
 
 Use an Apple Silicon Mac with macOS 14+ and **Xcode 16 or later with Swift 6**. Your chosen runtime can require a newer OS. No Swift packages or proprietary engines are downloaded by the app.
 

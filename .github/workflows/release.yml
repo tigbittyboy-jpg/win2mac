@@ -1,0 +1,38 @@
+name: Package Bridge preview
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: macos-15
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Run macOS tests
+        run: |
+          bridge_host_arch="$(uname -m)"
+          xcodebuild -project Bridge.xcodeproj -scheme Bridge -configuration Debug \
+            -destination "platform=macOS,arch=$bridge_host_arch" ARCHS="$bridge_host_arch" \
+            CODE_SIGNING_ALLOWED=NO test
+      - name: Build, verify, and package the app
+        env:
+          BRIDGE_PACKAGE_DIR: ${{ runner.temp }}/BridgePackage
+        run: bash scripts/package_macos.sh
+      - name: Publish preview release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRIDGE_PACKAGE_DIR: ${{ runner.temp }}/BridgePackage
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "$BRIDGE_PACKAGE_DIR/Bridge-macOS-arm64.zip" \
+            "$BRIDGE_PACKAGE_DIR/SHA256SUMS.txt" \
+            --verify-tag --prerelease --title "Bridge $GITHUB_REF_NAME — Apple Silicon preview" \
+            --notes-file docs/RELEASE_NOTES.md
