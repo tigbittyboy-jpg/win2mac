@@ -18,8 +18,8 @@ bridge_app="$bridge_derived/Build/Products/Release/Bridge.app"
 
 # Ad hoc signing preserves bundle integrity; it is not Developer ID notarization.
 codesign --verify --deep --strict --verbose=2 "$bridge_app"
-lipo -verify_arch arm64 "$bridge_app/Contents/MacOS/Bridge"
-lipo -verify_arch arm64 "$bridge_app/Contents/Frameworks/BridgeCore.framework/BridgeCore"
+lipo "$bridge_app/Contents/MacOS/Bridge" -verify_arch arm64
+lipo "$bridge_app/Contents/Frameworks/BridgeCore.framework/BridgeCore" -verify_arch arm64
 otool -L "$bridge_app/Contents/MacOS/Bridge"
 
 # Confirm framework loading and native process startup without an interactive GUI.
