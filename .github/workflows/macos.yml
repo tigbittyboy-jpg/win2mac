@@ -1,0 +1,28 @@
+name: macOS build and tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Build the Apple Silicon app
+        run: |
+          xcodebuild -version
+          xcodebuild -project Bridge.xcodeproj -scheme Bridge -configuration Debug \
+            -destination 'generic/platform=macOS' ARCHS=arm64 \
+            CODE_SIGNING_ALLOWED=NO build
+      - name: Run XCTest on the runner's macOS architecture
+        run: |
+          bridge_host_arch="$(uname -m)"
+          xcodebuild -project Bridge.xcodeproj -scheme Bridge -configuration Debug \
+            -destination "platform=macOS,arch=$bridge_host_arch" ARCHS="$bridge_host_arch" \
+            CODE_SIGNING_ALLOWED=NO test

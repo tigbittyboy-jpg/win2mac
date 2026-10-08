@@ -1,0 +1,198 @@
+import SwiftUI
+import BridgeCore
+
+struct ContentView: View {
+    @ObservedObject var model: BridgeModel
+    var body: some View {
+        NavigationSplitView {
+            List(NavigationSection.allCases, selection: $model.section) { section in
+                Label(section.rawValue, systemImage: section.icon).tag(section)
+            }
+            .navigationTitle("Bridge")
+            .navigationSplitViewColumnWidth(min: 160, ideal: 190)
+        } detail: {
+            VStack(spacing: 0) {
+                Group {
+                    switch model.section ?? .library {
+                    case .library: libraryView
+                    case .runtimes: runtimeView
+                    case .bottles: bottlesView
+                    case .diagnostics: diagnosticsView
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Divider()
+                consoleView
+            }
+            .navigationTitle(model.section?.rawValue ?? "Library")
+        }
+        .sheet(item: $model.pendingApproval) { approval in
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Approve software execution").font(.title2)
+                Text(approval.details).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                Text("This software runs with your user permissions and may access your files and network. A Wine prefix is not a security sandbox. Approve only software and runtimes you trust.")
+                HStack {
+                    Spacer()
+                    Button("Cancel") { model.pendingApproval = nil }.keyboardShortcut(.cancelAction)
+                    Button("Approve and Run") { model.approve(approval) }
+                }
+            }.padding(24).frame(width: 620)
+        }
+        .sheet(item: $model.pendingRemoval) { bottle in
+            VStack(alignment: .leading, spacing: 16) {
+                Text(bottle.managed ? "Delete bottle and its data?" : "Remove bottle association?").font(.title2)
+                Text(bottle.prefix.path).textSelection(.enabled)
+                Text(bottle.managed ? "This deletes all applications and files inside this Bridge-owned prefix. Make sure no Wine processes are still using it. This cannot be undone." : "The existing Wine prefix and its files will remain on disk.")
+                HStack {
+                    Spacer()
+                    Button("Cancel") { model.pendingRemoval = nil }.keyboardShortcut(.cancelAction)
+                    Button(bottle.managed ? "Delete" : "Remove", role: .destructive) { model.removeBottle(bottle) }
+                }
+            }.padding(24).frame(width: 560)
+        }
+        .alert("Bridge", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
+            Button("OK") { model.errorMessage = nil }
+        } message: { Text(model.errorMessage ?? "") }
+        .overlay(alignment: .top) {
+            if !model.loaded {
+                Text("Library unavailable. Check the error and preserve library.json before repairing it.")
+                    .padding().background(.regularMaterial)
+            }
+        }
+    }
+    private var libraryView: some View {
+        HSplitView {
+            VStack(alignment: .leading) {
+                HStack {
+                    Button("Select EXE", systemImage: "plus") { model.selectEXE() }.disabled(!model.canEdit)
+                    Spacer()
+                    Button("Remove Entry", systemImage: "minus") { model.removeSelectedApplication() }
+                        .disabled(!model.canEdit || model.selectedApplication == nil)
+                }.padding()
+                List(model.snapshot.applications, selection: Binding(get: { model.selectedApplicationID }, set: { model.selectApplication($0) })) { app in
+                    VStack(alignment: .leading) {
+                        Text(app.name).font(.headline)
+                        Text(app.executable.lastPathComponent).font(.caption).foregroundStyle(.secondary)
+                    }.tag(app.id)
+                }
+            }.frame(minWidth: 240)
+            VStack(alignment: .leading, spacing: 16) {
+                if let app = model.selectedApplication {
+                    Text(app.name).font(.title2)
+                    Text(app.executable.path).font(.caption).textSelection(.enabled)
+                    Picker("Bottle", selection: Binding(get: { model.selectedApplication?.bottleID }, set: { model.associateSelectedApplication($0) })) {
+                        Text("Select a bottle").tag(nil as UUID?)
+                        ForEach(model.snapshot.bottles) { bottle in Text(bottle.name).tag(Optional(bottle.id)) }
+                    }.disabled(!model.canEdit)
+                    if let bottle = model.snapshot.bottles.first(where: { $0.id == app.bottleID }),
+                       let runtime = model.snapshot.runtimes.first(where: { $0.id == bottle.runtimeID }) {
+                        Text("Runtime: \(runtime.name) (\(runtime.architecture.rawValue))")
+                        Text("Prefix: \(bottle.prefix.path)").font(.caption).textSelection(.enabled)
+                    }
+                    Text("Arguments — one argument per line; spaces stay inside an argument").font(.caption)
+                    TextEditor(text: $model.argumentsText).font(.system(.body, design: .monospaced))
+                        .frame(height: 90).border(Color.secondary.opacity(0.3)).disabled(!model.canEdit)
+                    Button("Save Arguments") { model.saveArguments() }.disabled(!model.canEdit)
+                    Button("Launch", systemImage: "play.fill") { model.requestLaunch() }
+                        .buttonStyle(.borderedProminent).disabled(!model.canEdit)
+                    Text("Importing an EXE does not run it or copy it. Installers use the selected prefix; add the installed application's EXE separately afterward.")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    ContentUnavailableView("No application selected", systemImage: "square.grid.2x2", description: Text("Use Select EXE to import a Windows x64 application. Configure a runtime and bottle before launching."))
+                }
+                Spacer()
+            }.padding().frame(minWidth: 350, maxWidth: .infinity, alignment: .leading)
+        }
+    }
+    private var runtimePicker: some View {
+        Picker("Runtime", selection: $model.selectedRuntimeID) {
+            Text("Select runtime").tag(nil as UUID?)
+            ForEach(model.snapshot.runtimes) { runtime in Text(runtime.name + " — " + runtime.executable.path).tag(Optional(runtime.id)) }
+        }.disabled(!model.canEdit)
+    }
+    private var runtimeView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("User-installed Wine runtimes").font(.title2)
+                Text("Bridge does not bundle or download compatibility engines. Select the executable or wrapper documented by your runtime provider.")
+                HStack {
+                    Button("Select Runtime") { model.chooseRuntime() }
+                    Button("Discover Common Paths") { model.discoverRuntimes() }
+                }.disabled(!model.canEdit)
+                runtimePicker
+                if let runtime = model.selectedRuntime {
+                    Text(runtime.executable.path).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                    Picker("Provider-documented architecture", selection: $model.runtimeArchitecture) {
+                        ForEach(RuntimeArchitecture.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    }.disabled(!model.canEdit)
+                    Text("Mach-O architecture is inspected passively. For wrappers, choose the architecture of the launched Wine engine. This does not prove Windows x64 support.").font(.caption)
+                    Toggle("My runtime provider documents Windows x64 execution on this Mac", isOn: $model.runtimeSupportsX64).disabled(!model.canEdit)
+                    HStack {
+                        Button("Save Runtime Settings") { model.saveRuntimeSettings() }
+                        Button("Probe Version…") { model.requestProbe() }
+                    }.disabled(!model.canEdit)
+                    Text("Save settings before probing or creating a bottle. Last version: \(runtime.version ?? "not probed")").font(.caption)
+                }
+                Text("Intel engines require Rosetta 2 on Apple Silicon. Native ARM64 engines need their own supported x64 translation path. Some engines require a newer macOS than Bridge's macOS 14 minimum.")
+                Link("Apple's Rosetta instructions", destination: URL(string: "https://support.apple.com/en-us/102527")!)
+                Spacer()
+            }.padding().frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+    private var bottlesView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Isolated Wine prefixes").font(.title2)
+                Text("Prefixes organize settings and installed files. They are not security sandboxes.")
+                runtimePicker
+                TextField("Bottle name", text: $model.bottleName).disabled(!model.canEdit)
+                HStack {
+                    TextField("Absolute prefix directory", text: $model.prefixPath).disabled(!model.canEdit)
+                    Button("Choose Parent…") { model.choosePrefixLocation() }.disabled(!model.canEdit)
+                }
+                HStack {
+                    Button("Create Bottle…") { model.requestCreateBottle() }
+                    Button("Use Existing Prefix…") { model.associateExistingPrefix() }
+                }.disabled(!model.canEdit)
+                Text("Creation needs a new directory and executes wineboot with approval. Existing prefixes must contain drive_c and system.reg. Graphics: use runtime defaults; no backend libraries are installed.").font(.caption)
+                Divider()
+                ForEach(model.snapshot.bottles) { bottle in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(bottle.name).font(.headline)
+                            Text(bottle.prefix.path).font(.caption).textSelection(.enabled)
+                            Text(bottle.managed ? "Bridge-managed" : "External — association only").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button(bottle.managed ? "Delete…" : "Remove…", role: .destructive) { model.pendingRemoval = bottle }.disabled(!model.canEdit)
+                    }.padding(.vertical, 6)
+                }
+            }.padding().frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+    private var diagnosticsView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Review output before sharing: path redaction cannot remove every secret.").font(.caption)
+            HStack {
+                Button("Refresh") { model.refreshDiagnostics() }
+                Button("Copy Report") { model.copyDiagnostics() }
+            }
+            ScrollView { Text(model.diagnosticsText).font(.system(.body, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+        }.padding()
+    }
+    private var consoleView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Process Output").font(.headline)
+                if model.busy { ProgressView().controlSize(.small) }
+                Spacer()
+                Button("Stop") { model.stop() }.disabled(!model.busy)
+                Button("Clear") { model.clearConsole() }
+            }
+            ScrollView {
+                Text(model.console).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(height: 150)
+        }.padding()
+    }
+}
