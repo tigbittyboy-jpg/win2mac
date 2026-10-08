@@ -17,7 +17,15 @@ bridge_app="$bridge_derived/Build/Products/Release/Bridge.app"
 [[ -d "$bridge_app" ]] || { printf '%s\n' 'Bridge.app was not produced.' >&2; exit 1; }
 
 # Ad hoc signing preserves bundle integrity; it is not Developer ID notarization.
+# Some newer Xcode versions omit hardened-runtime flags for ad hoc identities.
+# Sign our single executable explicitly rather than weakening library validation.
+codesign --force --sign - --options runtime "$bridge_app"
 codesign --verify --deep --strict --verbose=2 "$bridge_app"
+codesign --display --verbose=4 "$bridge_app" 2> "$bridge_output/signature.txt"
+cat "$bridge_output/signature.txt"
+grep -q '(runtime)' "$bridge_output/signature.txt" || {
+    printf '%s\n' 'Packaged Bridge must retain hardened runtime.' >&2; exit 1;
+}
 lipo "$bridge_app/Contents/MacOS/Bridge" -verify_arch arm64
 bridge_links="$bridge_output/linked-libraries.txt"
 otool -L "$bridge_app/Contents/MacOS/Bridge" > "$bridge_links"
@@ -30,7 +38,7 @@ fi
     printf '%s\n' 'Unexpected embedded BridgeCore framework.' >&2; exit 1;
 }
 otool -l "$bridge_app/Contents/MacOS/Bridge" > "$bridge_output/load-commands.txt"
-if grep -Eq '/Users/runner/|/DerivedData/' "$bridge_output/load-commands.txt"; then
+if awk '$1 == "path" || $1 == "name" { print $2 }' "$bridge_output/load-commands.txt" | grep -Eq '/Users/runner/|/DerivedData/'; then
     printf '%s\n' 'App load commands must not depend on a builder directory.' >&2; exit 1
 fi
 

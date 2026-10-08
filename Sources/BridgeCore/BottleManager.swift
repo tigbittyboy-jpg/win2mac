@@ -31,7 +31,9 @@ public enum PrefixPolicy {
             }
             ancestor.deleteLastPathComponent()
         }
-        return resolved
+        // A prefix is a directory even before creation. Foundation can infer a
+        // different directory hint once it exists; persist a stable URL form.
+        return URL(fileURLWithPath: resolved.path, isDirectory: true)
     }
     public static func validateInitialized(_ url: URL) throws {
         let prefix = try canonical(url)
@@ -94,7 +96,8 @@ public actor BottleManager: BottleManaging {
         guard bottle.managed else { throw BridgeError.invalidPrefix("Bridge cannot delete an externally managed prefix.") }
         let marker = path.appendingPathComponent(Self.marker)
         guard let data = try? Data(contentsOf: marker), let owner = try? JSONDecoder().decode(Bottle.self, from: data),
-              owner.id == bottle.id, owner.managed, owner.prefix.standardizedFileURL == path else {
+              owner.id == bottle.id, owner.managed, owner.prefix.isFileURL,
+              owner.prefix.standardizedFileURL.path == path.path else {
             throw BridgeError.invalidPrefix("Refusing deletion: prefix has no matching Bridge ownership record.")
         }
         try FileManager.default.removeItem(at: path)

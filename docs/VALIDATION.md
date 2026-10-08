@@ -13,7 +13,7 @@ The correction changes the Xcode BridgeCore target to a static library, removes 
 ## Executed checks
 
 - Swift 6.0.3 compilation of every BridgeCore source file with Swift 6 strict concurrency: **passed**.
-- XCTest: **22 tests executed, 0 failures, 0 skips** using `bash scripts/test_linux.sh`. This includes injected Wine-process behavior and real trusted system-process checks. The separate Swift Testing runner's “0 tests” footer is not the XCTest result.
+- XCTest: **23 tests executed, 0 failures, 0 skips** using `bash scripts/test_linux.sh` after the startup correction. This includes injected Wine-process behavior and real trusted system-process checks. The added ownership regression covers directory URL hints and rejection of a marker for another prefix. The separate Swift Testing runner's “0 tests” footer is not the XCTest result.
 - Mocked execution covers permission refusal, explicit argument boundaries (including spaces/metacharacters), prefix environment, exit status, stream forwarding, launch failures, and release of bottle leases after failure.
 - Runtime inspection covers Intel, ARM64, universal Mach-O CPU headers, symlinks, script wrappers, missing executables, Rosetta prerequisites, x64 declaration, version probes, and probe failure. Mach-O fixtures are header samples, not runnable engines.
 - Prefix tests cover approved initialization, existing-prefix structure, enumeration, partial initialization failure, managed deletion, forged ownership rejection, external-prefix refusal, active leases, and source-repository exclusion.

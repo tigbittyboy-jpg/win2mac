@@ -203,6 +203,23 @@ final class BridgeCoreTests: XCTestCase, @unchecked Sendable {
         catch { XCTAssertTrue(error.localizedDescription.contains("partial prefix")) }
         XCTAssertTrue(FileManager.default.fileExists(atPath: path.appendingPathComponent(".bridge-bottle.json").path))
     }
+    func testOwnedRemovalChecksPathWithoutDependingOnURLDirectoryHint() async throws {
+        let engine = try runtime()
+        let manager = BottleManager(executor: MockExecutor(initializePrefix: true), runtimes: RuntimeManager(host: mac))
+        let bottle = try await manager.create(name: "Owned", prefix: root.appendingPathComponent("owned"),
+            runtime: engine, approved: true, output: { _ in })
+        let marker = bottle.prefix.appendingPathComponent(".bridge-bottle.json")
+        var owner = bottle
+        owner.prefix = root.appendingPathComponent("different directory", isDirectory: true)
+        try JSONEncoder().encode(owner).write(to: marker)
+        do { try await manager.remove(bottle); XCTFail("Accepted a marker for another path") }
+        catch { XCTAssertTrue(error is BridgeError) }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: bottle.prefix.path))
+        owner.prefix = URL(fileURLWithPath: bottle.prefix.path, isDirectory: false)
+        try JSONEncoder().encode(owner).write(to: marker)
+        try await manager.remove(bottle)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bottle.prefix.path))
+    }
     func testExternalPrefixAndRepositoryDeletionRefused() async throws {
         let engine = try runtime(), bottle = try initializedBottle(runtime: engine)
         let manager = BottleManager()
