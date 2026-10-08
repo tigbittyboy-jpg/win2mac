@@ -75,10 +75,18 @@ final class BridgeModel: ObservableObject {
     var selectedApplication: ApplicationEntry? { snapshot.applications.first { $0.id == selectedApplicationID } }
     var selectedRuntime: WineRuntime? { snapshot.runtimes.first { $0.id == selectedRuntimeID } }
     var canEdit: Bool { loaded && !busy }
+    var selectedRuntimeConfigured: Bool {
+        guard let runtime = selectedRuntime else { return false }
+        return runtime.architecture != .unknown && runtime.supportsWindowsX64
+    }
+    var canCreateBottle: Bool { canEdit && selectedRuntimeConfigured }
     func load() async {
         guard !loadAttempted else { return }; loadAttempted = true
         do {
-            snapshot = try await library.load(); loaded = true
+            snapshot = try await library.load()
+            // Inspect installed files only. Discovery never executes a candidate.
+            try await addRuntimes(runtimes.discover())
+            loaded = true
             selectedRuntimeID = snapshot.runtimes.first?.id
             selectApplication(snapshot.applications.first?.id)
             refreshDiagnostics()
@@ -162,6 +170,8 @@ final class BridgeModel: ObservableObject {
         guard canEdit else { return }
         let panel = NSOpenPanel(); panel.title = "Select the provider's Wine executable or supported wrapper"
         panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+        panel.treatsFilePackagesAsDirectories = true
+        panel.message = "Choose the Wine executable supplied by your installed runtime, rather than a Windows EXE. App bundles can be opened to locate a provider-supported executable."
         guard panel.runModal() == .OK, let url = panel.url else { return }
         perform { try await self.addRuntimes([self.runtimes.inspect(url)]) }
     }
@@ -171,9 +181,9 @@ final class BridgeModel: ObservableObject {
         for runtime in found where !next.runtimes.contains(where: { $0.executable.resolvingSymlinksInPath() == runtime.executable.resolvingSymlinksInPath() }) {
             next.runtimes.append(runtime)
         }
-        try await save(next)
+        if next != snapshot { try await save(next) }
         selectedRuntimeID = next.runtimes.first(where: { $0.executable.resolvingSymlinksInPath() == found.first?.executable.resolvingSymlinksInPath() })?.id ?? selectedRuntimeID
-        if found.isEmpty { appendConsole(.init(stream: .stdout, text: "No runtime found in common paths. Use Select Runtime for a provider-supported executable.\n")) }
+        if found.isEmpty { appendConsole(.init(stream: .stdout, text: "No installed Wine runtime found in common paths. Choose your provider's Wine executable, or install a compatible Wine runtime first. Bridge includes no Wine engine.\n")) }
     }
     func saveRuntimeSettings() {
         guard let id = selectedRuntimeID else { return }
@@ -192,6 +202,8 @@ final class BridgeModel: ObservableObject {
     }
     func requestCreateBottle() {
         guard canEdit, let runtime = selectedRuntime else { errorMessage = "Select and configure a runtime first."; return }
+        do { try runtimes.validate(runtime, forLaunch: true) }
+        catch { errorMessage = error.localizedDescription; return }
         guard prefixPath.hasPrefix("/"), !bottleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             errorMessage = "Enter a bottle name and an absolute prefix path."; return
         }

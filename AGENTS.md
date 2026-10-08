@@ -11,6 +11,7 @@ Phase 1 only: native macOS 14+ SwiftUI frontend, Swift 6 backend, user-installed
 - Prefixes are organizational isolation, not security sandboxes. Never promise game compatibility from a successful version probe.
 - Deletion requires a matching Bridge ownership record. Never recursively delete an arbitrary selected prefix.
 - Cover behavior and error paths with injected process execution. Keep hardware-dependent tests separate from mocked tests.
+- Xcode's hostless XCTest target also compiles the actual BridgeModel source, enabling three macOS model tests behind `BRIDGE_MODEL_TESTS`. Preserve that condition in the generated project. Linux/SwiftPM backend tests intentionally skip those AppKit model tests; report the counts separately.
 
 ## Commands
 

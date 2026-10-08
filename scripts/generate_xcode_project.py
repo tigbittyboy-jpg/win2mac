@@ -36,7 +36,7 @@ def configuration_list(name, settings):
         per_mode["SWIFT_OPTIMIZATION_LEVEL"] = "-Onone" if mode == "Debug" else "-O"
         if mode == "Debug":
             per_mode["ENABLE_TESTABILITY"] = "YES"
-            per_mode["SWIFT_ACTIVE_COMPILATION_CONDITIONS"] = "$(inherited) DEBUG"
+            per_mode["SWIFT_ACTIVE_COMPILATION_CONDITIONS"] = per_mode.get("SWIFT_ACTIVE_COMPILATION_CONDITIONS", "$(inherited)") + " DEBUG"
         configs.append(add(name + mode, "XCBuildConfiguration", buildSettings=per_mode, name=mode))
     return add(name + "Configurations", "XCConfigurationList", buildConfigurations=configs,
                defaultConfigurationIsVisible=0, defaultConfigurationName="Release")
@@ -56,12 +56,17 @@ for target, folder, extension, file_type in [
     ("BridgeCoreTests", "Tests/BridgeCoreTests", "xctest", "wrapper.cfbundle"),
 ]:
     files, builds = [], []
-    for path in sorted((ROOT / folder).glob("*.swift")):
+    paths = sorted((ROOT / folder).glob("*.swift"))
+    if target == "BridgeCoreTests":
+        # Test the actual UI model with injected services in a hostless macOS
+        # XCTest bundle. No SwiftUI App entry point or Wine runtime is started.
+        paths.append(ROOT / "Sources/BridgeApp/BridgeModel.swift")
+    for path in paths:
         relative = path.relative_to(ROOT).as_posix()
         ref = add(relative, "PBXFileReference", lastKnownFileType="sourcecode.swift",
                   path=relative, sourceTree="SOURCE_ROOT")
         files.append(ref)
-        builds.append(add(relative + "Build", "PBXBuildFile", fileRef=ref))
+        builds.append(add(relative + target + "Build", "PBXBuildFile", fileRef=ref))
     groups.append(add(target + "Group", "PBXGroup", name=target, children=files, sourceTree="<group>"))
     source_phases[target] = add(target + "Sources", "PBXSourcesBuildPhase", buildActionMask=2147483647,
                                files=builds, runOnlyForDeploymentPostprocessing=0)
@@ -74,7 +79,7 @@ targets = []
 for target, kind in [("BridgeCore", "library.static"), ("Bridge", "application"), ("BridgeCoreTests", "bundle.unit-test")]:
     settings = dict(common)
     settings.update({"PRODUCT_NAME": "$(TARGET_NAME)", "PRODUCT_BUNDLE_IDENTIFIER": "org.bridge-launcher." + target,
-                     "GENERATE_INFOPLIST_FILE": "YES", "CURRENT_PROJECT_VERSION": "9",
+                     "GENERATE_INFOPLIST_FILE": "YES", "CURRENT_PROJECT_VERSION": "10",
                      "MARKETING_VERSION": "0.1.0"})
     linked = []
     dependencies = []
@@ -102,6 +107,7 @@ for target, kind in [("BridgeCore", "library.static"), ("Bridge", "application")
                          "INFOPLIST_KEY_NSPrincipalClass": "NSApplication"})
     else:
         settings["SKIP_INSTALL"] = "YES"
+        settings["SWIFT_ACTIVE_COMPILATION_CONDITIONS"] = "$(inherited) BRIDGE_MODEL_TESTS"
     phases.append(add(target + "Frameworks", "PBXFrameworksBuildPhase", buildActionMask=2147483647,
                       files=linked, runOnlyForDeploymentPostprocessing=0))
     targets.append(add(target + "Target", "PBXNativeTarget", name=target, productName=target,

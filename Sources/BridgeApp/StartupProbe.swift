@@ -2,7 +2,8 @@ import AppKit
 import Foundation
 
 /// Release verification only: creates the normal SwiftUI window and loads an
-/// empty library. Never discovers, probes, or launches a Wine runtime or EXE.
+/// fresh library and passively discovers installed paths. Never probes or
+/// launches a Wine runtime or EXE.
 @MainActor
 enum StartupProbe {
     static var reportURL: URL? {

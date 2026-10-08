@@ -110,29 +110,45 @@ struct ContentView: View {
             ForEach(model.snapshot.runtimes) { runtime in Text(runtime.name + " — " + runtime.executable.path).tag(Optional(runtime.id)) }
         }.disabled(!model.canEdit)
     }
+    private var runtimeSelection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Button("Choose Wine Executable…") { model.chooseRuntime() }
+                Button("Scan Installed Runtimes") { model.discoverRuntimes() }
+            }.disabled(!model.canEdit)
+            if model.snapshot.runtimes.isEmpty {
+                Text("No Wine runtime added").font(.headline)
+                Text("Bottle creation requires a separately installed Wine-compatible runtime. If you have one, choose its Wine executable above. Otherwise, install a runtime that supports Windows x64 on Apple Silicon, then scan or select it here.")
+                Link("Runtime setup instructions", destination: URL(string: "https://github.com/tigbittyboy-jpg/win2mac/blob/main/docs/RUNTIME_SETUP.md")!)
+                Link("Wine macOS builds and provider instructions", destination: URL(string: "https://github.com/Gcenx/macOS_Wine_builds")!)
+            } else {
+                runtimePicker
+            }
+            if let runtime = model.selectedRuntime {
+                Text(runtime.executable.path).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                Picker("Provider-documented architecture", selection: $model.runtimeArchitecture) {
+                    ForEach(RuntimeArchitecture.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }.disabled(!model.canEdit)
+                Text("For wrappers, choose the architecture of the launched Wine engine. Inspection does not prove Windows x64 support.").font(.caption)
+                Toggle("My runtime provider documents Windows x64 execution on this Mac", isOn: $model.runtimeSupportsX64).disabled(!model.canEdit)
+                HStack {
+                    Button("Save Runtime Settings") { model.saveRuntimeSettings() }
+                    Button("Probe Version…") { model.requestProbe() }
+                }.disabled(!model.canEdit)
+                if !model.selectedRuntimeConfigured {
+                    Text("Confirm the runtime's architecture and Windows x64 support, then save settings to enable bottle creation.")
+                        .font(.callout)
+                }
+                Text("Last version: \(runtime.version ?? "not probed")").font(.caption)
+            }
+        }
+    }
     private var runtimeView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("User-installed Wine runtimes").font(.title2)
                 Text("Bridge does not bundle or download compatibility engines. Select the executable or wrapper documented by your runtime provider.")
-                HStack {
-                    Button("Select Runtime") { model.chooseRuntime() }
-                    Button("Discover Common Paths") { model.discoverRuntimes() }
-                }.disabled(!model.canEdit)
-                runtimePicker
-                if let runtime = model.selectedRuntime {
-                    Text(runtime.executable.path).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
-                    Picker("Provider-documented architecture", selection: $model.runtimeArchitecture) {
-                        ForEach(RuntimeArchitecture.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                    }.disabled(!model.canEdit)
-                    Text("Mach-O architecture is inspected passively. For wrappers, choose the architecture of the launched Wine engine. This does not prove Windows x64 support.").font(.caption)
-                    Toggle("My runtime provider documents Windows x64 execution on this Mac", isOn: $model.runtimeSupportsX64).disabled(!model.canEdit)
-                    HStack {
-                        Button("Save Runtime Settings") { model.saveRuntimeSettings() }
-                        Button("Probe Version…") { model.requestProbe() }
-                    }.disabled(!model.canEdit)
-                    Text("Save settings before probing or creating a bottle. Last version: \(runtime.version ?? "not probed")").font(.caption)
-                }
+                runtimeSelection
                 Text("Intel engines require Rosetta 2 on Apple Silicon. Native ARM64 engines need their own supported x64 translation path. Some engines require a newer macOS than Bridge's macOS 14 minimum.")
                 Link("Apple's Rosetta instructions", destination: URL(string: "https://support.apple.com/en-us/102527")!)
                 Spacer()
@@ -144,16 +160,18 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Isolated Wine prefixes").font(.title2)
                 Text("Prefixes organize settings and installed files. They are not security sandboxes.")
-                runtimePicker
+                runtimeSelection
+                Divider()
                 TextField("Bottle name", text: $model.bottleName).disabled(!model.canEdit)
                 HStack {
                     TextField("Absolute prefix directory", text: $model.prefixPath).disabled(!model.canEdit)
                     Button("Choose Parent…") { model.choosePrefixLocation() }.disabled(!model.canEdit)
                 }
                 HStack {
-                    Button("Create Bottle…") { model.requestCreateBottle() }
+                    Button("Create Bottle…") { model.requestCreateBottle() }.disabled(!model.canCreateBottle)
                     Button("Use Existing Prefix…") { model.associateExistingPrefix() }
-                }.disabled(!model.canEdit)
+                        .disabled(!model.canEdit || model.selectedRuntime == nil)
+                }
                 Text("Creation needs a new directory and executes wineboot with approval. Existing prefixes must contain drive_c and system.reg. Graphics: use runtime defaults; no backend libraries are installed.").font(.caption)
                 Divider()
                 ForEach(model.snapshot.bottles) { bottle in

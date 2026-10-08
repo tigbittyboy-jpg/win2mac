@@ -12,7 +12,7 @@
 "path" = "Sources/BridgeCore/ApplicationLibrary.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"F4461824E4B4657F1EDFB8E5" = {
+"B8FE6B3D3ECD1477D5606318" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "BD41EA6FB9D12A432951E693";
 };
@@ -22,7 +22,7 @@
 "path" = "Sources/BridgeCore/BottleManager.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"5D19609AC55BD565DD7B5294" = {
+"F368D1EC1DD4A5897395192A" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "B919313574100B41750C0366";
 };
@@ -32,7 +32,7 @@
 "path" = "Sources/BridgeCore/DiagnosticsService.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"B19B20B6B08ADC9255A69CF2" = {
+"6B7F659667BD66A6E0466CA6" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "899DB90E7477630B2095955D";
 };
@@ -42,7 +42,7 @@
 "path" = "Sources/BridgeCore/ExecutableValidator.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"D1756E5DBE1F17255ADB6513" = {
+"7441251C3520C7FDB54877C7" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "DFAD88EE9B922453F10709F6";
 };
@@ -52,7 +52,7 @@
 "path" = "Sources/BridgeCore/GraphicsManager.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"796E8ADC4C7DA71AB11B5DBF" = {
+"110006B0306B2AD8237A2E19" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "D18B47793FF206A220EBF9A3";
 };
@@ -62,7 +62,7 @@
 "path" = "Sources/BridgeCore/LaunchService.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"0D929532321E7C5783DD909D" = {
+"5652F86C32982543D07BBCBC" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "5EBC7447AC1A0D433A49160E";
 };
@@ -72,7 +72,7 @@
 "path" = "Sources/BridgeCore/Models.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"0ABD216947AF5C797DD1AB30" = {
+"5B50DAFF15675CDA31BB428F" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "00488B5174AAE0C2C376AE31";
 };
@@ -82,7 +82,7 @@
 "path" = "Sources/BridgeCore/ProcessExecutor.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"AF8C1D13B603CA69E53DE436" = {
+"BA01773BF919FB0063E059E9" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "9BB5D5EB9CBE923BA24C5018";
 };
@@ -92,7 +92,7 @@
 "path" = "Sources/BridgeCore/RuntimeManager.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"DA9B185297078DE84ECF18A3" = {
+"A4DBE1F102EB677DA954F41E" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "DB5A357BD3AD0B790164A6AA";
 };
@@ -116,15 +116,15 @@
 "isa" = "PBXSourcesBuildPhase";
 "buildActionMask" = 2147483647;
 "files" = (
-"F4461824E4B4657F1EDFB8E5",
-"5D19609AC55BD565DD7B5294",
-"B19B20B6B08ADC9255A69CF2",
-"D1756E5DBE1F17255ADB6513",
-"796E8ADC4C7DA71AB11B5DBF",
-"0D929532321E7C5783DD909D",
-"0ABD216947AF5C797DD1AB30",
-"AF8C1D13B603CA69E53DE436",
-"DA9B185297078DE84ECF18A3",
+"B8FE6B3D3ECD1477D5606318",
+"F368D1EC1DD4A5897395192A",
+"6B7F659667BD66A6E0466CA6",
+"7441251C3520C7FDB54877C7",
+"110006B0306B2AD8237A2E19",
+"5652F86C32982543D07BBCBC",
+"5B50DAFF15675CDA31BB428F",
+"BA01773BF919FB0063E059E9",
+"A4DBE1F102EB677DA954F41E",
 );
 "runOnlyForDeploymentPostprocessing" = 0;
 };
@@ -141,7 +141,7 @@
 "path" = "Sources/BridgeApp/BridgeApp.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"72DEFC71CBBBE0D1A6E176B1" = {
+"70496031350DD4E9418A69AE" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "7308EA9C1966E9369D3F13A9";
 };
@@ -151,7 +151,7 @@
 "path" = "Sources/BridgeApp/BridgeModel.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"412435646495AEE431AEE2C8" = {
+"C8F1C2FDB5B70232CDF4A024" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "2D9BD60BDE76A07B37244A79";
 };
@@ -161,7 +161,7 @@
 "path" = "Sources/BridgeApp/ContentView.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"340DA08EC008E3BBFE0A1E6F" = {
+"B1FE707DDDB990FE403519CA" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "3DC386010540439B0B7BE820";
 };
@@ -171,7 +171,7 @@
 "path" = "Sources/BridgeApp/StartupProbe.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"9A433E8CD5C51076DD3E30CB" = {
+"CDF3B4A56FADA976964523D1" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "3C82A54646DF6B276DB1C337";
 };
@@ -190,10 +190,10 @@
 "isa" = "PBXSourcesBuildPhase";
 "buildActionMask" = 2147483647;
 "files" = (
-"72DEFC71CBBBE0D1A6E176B1",
-"412435646495AEE431AEE2C8",
-"340DA08EC008E3BBFE0A1E6F",
-"9A433E8CD5C51076DD3E30CB",
+"70496031350DD4E9418A69AE",
+"C8F1C2FDB5B70232CDF4A024",
+"B1FE707DDDB990FE403519CA",
+"CDF3B4A56FADA976964523D1",
 );
 "runOnlyForDeploymentPostprocessing" = 0;
 };
@@ -210,15 +210,31 @@
 "path" = "Tests/BridgeCoreTests/BridgeCoreTests.swift";
 "sourceTree" = "SOURCE_ROOT";
 };
-"8ACCD6BFF6897B079D510472" = {
+"0C583476E401B86BC67E94DF" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "87F9A8CBE32EDE03479853C8";
+};
+"0296F3A5065E36D94376DC08" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Tests/BridgeCoreTests/BridgeModelTests.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"314D21B365DE20EA9D13AFCB" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "0296F3A5065E36D94376DC08";
+};
+"DF3F3EE22AD4E818372893AE" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "2D9BD60BDE76A07B37244A79";
 };
 "8C85A9AFB3DF8EA11E1FD4D2" = {
 "isa" = "PBXGroup";
 "name" = "BridgeCoreTests";
 "children" = (
 "87F9A8CBE32EDE03479853C8",
+"0296F3A5065E36D94376DC08",
+"2D9BD60BDE76A07B37244A79",
 );
 "sourceTree" = "<group>";
 };
@@ -226,7 +242,9 @@
 "isa" = "PBXSourcesBuildPhase";
 "buildActionMask" = 2147483647;
 "files" = (
-"8ACCD6BFF6897B079D510472",
+"0C583476E401B86BC67E94DF",
+"314D21B365DE20EA9D13AFCB",
+"DF3F3EE22AD4E818372893AE",
 );
 "runOnlyForDeploymentPostprocessing" = 0;
 };
@@ -263,7 +281,7 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.BridgeCore";
 "GENERATE_INFOPLIST_FILE" = "NO";
-"CURRENT_PROJECT_VERSION" = "9";
+"CURRENT_PROJECT_VERSION" = "10";
 "MARKETING_VERSION" = "0.1.0";
 "DEFINES_MODULE" = "YES";
 "SKIP_INSTALL" = "YES";
@@ -293,7 +311,7 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.BridgeCore";
 "GENERATE_INFOPLIST_FILE" = "NO";
-"CURRENT_PROJECT_VERSION" = "9";
+"CURRENT_PROJECT_VERSION" = "10";
 "MARKETING_VERSION" = "0.1.0";
 "DEFINES_MODULE" = "YES";
 "SKIP_INSTALL" = "YES";
@@ -372,7 +390,7 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.Bridge";
 "GENERATE_INFOPLIST_FILE" = "YES";
-"CURRENT_PROJECT_VERSION" = "9";
+"CURRENT_PROJECT_VERSION" = "10";
 "MARKETING_VERSION" = "0.1.0";
 "LD_RUNPATH_SEARCH_PATHS" = (
 "$(inherited)",
@@ -408,7 +426,7 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.Bridge";
 "GENERATE_INFOPLIST_FILE" = "YES";
-"CURRENT_PROJECT_VERSION" = "9";
+"CURRENT_PROJECT_VERSION" = "10";
 "MARKETING_VERSION" = "0.1.0";
 "LD_RUNPATH_SEARCH_PATHS" = (
 "$(inherited)",
@@ -493,7 +511,7 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.BridgeCoreTests";
 "GENERATE_INFOPLIST_FILE" = "YES";
-"CURRENT_PROJECT_VERSION" = "9";
+"CURRENT_PROJECT_VERSION" = "10";
 "MARKETING_VERSION" = "0.1.0";
 "LD_RUNPATH_SEARCH_PATHS" = (
 "$(inherited)",
@@ -501,9 +519,9 @@
 "@loader_path/../Frameworks",
 );
 "SKIP_INSTALL" = "YES";
+"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "$(inherited) BRIDGE_MODEL_TESTS DEBUG";
 "SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
 "ENABLE_TESTABILITY" = "YES";
-"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "$(inherited) DEBUG";
 };
 "name" = "Debug";
 };
@@ -525,7 +543,7 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.BridgeCoreTests";
 "GENERATE_INFOPLIST_FILE" = "YES";
-"CURRENT_PROJECT_VERSION" = "9";
+"CURRENT_PROJECT_VERSION" = "10";
 "MARKETING_VERSION" = "0.1.0";
 "LD_RUNPATH_SEARCH_PATHS" = (
 "$(inherited)",
@@ -533,6 +551,7 @@
 "@loader_path/../Frameworks",
 );
 "SKIP_INSTALL" = "YES";
+"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "$(inherited) BRIDGE_MODEL_TESTS";
 "SWIFT_OPTIMIZATION_LEVEL" = "-O";
 };
 "name" = "Release";

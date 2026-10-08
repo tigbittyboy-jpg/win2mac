@@ -93,6 +93,19 @@ final class BridgeCoreTests: XCTestCase, @unchecked Sendable {
         try FileManager.default.createSymbolicLink(at: link, withDestinationURL: engine.executable)
         XCTAssertEqual(try RuntimeManager(host: mac).inspect(link).architecture, .x86_64)
     }
+    func testDiscoveryInspectsAndDeduplicatesWithoutExecuting() async throws {
+        let engine = try runtime(), link = root.appendingPathComponent("wine-link")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: engine.executable)
+        let executor = MockExecutor()
+        let manager = RuntimeManager(executor: executor, host: mac,
+            discoveryPaths: [root.appendingPathComponent("missing"), engine.executable, link])
+        let found = manager.discover()
+        XCTAssertEqual(found.count, 1)
+        XCTAssertEqual(found.first?.architecture, .x86_64)
+        XCTAssertEqual(found.first?.supportsWindowsX64, false)
+        let requests = await executor.requests
+        XCTAssertTrue(requests.isEmpty)
+    }
     func testRosettaAndX64DeclarationRequired() throws {
         var engine = try runtime()
         let manager = RuntimeManager(host: .init(isMacOS: true, isAppleSilicon: true, rosettaInstalled: false))

@@ -10,15 +10,29 @@ public protocol RuntimeManaging: Sendable {
 public struct RuntimeManager: RuntimeManaging {
     private let executor: any ProcessExecuting
     private let host: HostCapabilities
-    public init(executor: any ProcessExecuting = FoundationProcessExecutor(), host: HostCapabilities = .current) {
+    private let discoveryPaths: [URL]
+    public init(executor: any ProcessExecuting = FoundationProcessExecutor(), host: HostCapabilities = .current,
+                discoveryPaths: [URL]? = nil) {
         self.executor = executor; self.host = host
+        self.discoveryPaths = discoveryPaths ?? Self.commonPaths
+    }
+    private static var commonPaths: [URL] {
+        var paths = ["/opt/homebrew/bin/wine", "/opt/homebrew/bin/wine64", "/usr/local/bin/wine", "/usr/local/bin/wine64"]
+            .map { URL(fileURLWithPath: $0) }
+        for directory in [URL(fileURLWithPath: "/Applications", isDirectory: true),
+                          FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications", isDirectory: true)] {
+            for app in ["Wine Stable.app", "Wine Devel.app", "Wine Staging.app"] {
+                for executable in ["wine", "wine64"] {
+                    paths.append(directory.appendingPathComponent("\(app)/Contents/Resources/wine/bin/\(executable)"))
+                }
+            }
+        }
+        return paths
     }
     public func discover() -> [WineRuntime] {
-        let paths = ["/opt/homebrew/bin/wine", "/opt/homebrew/bin/wine64", "/usr/local/bin/wine",
-                     "/usr/local/bin/wine64", "/Applications/Wine Stable.app/Contents/Resources/wine/bin/wine64"]
         var seen: Set<String> = []
-        return paths.compactMap { path in
-            let url = URL(fileURLWithPath: path).resolvingSymlinksInPath()
+        return discoveryPaths.compactMap { candidate in
+            let url = candidate.resolvingSymlinksInPath()
             guard seen.insert(url.path).inserted else { return nil }
             return try? inspect(url)
         }
