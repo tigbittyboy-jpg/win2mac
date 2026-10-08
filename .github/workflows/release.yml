@@ -24,7 +24,16 @@ jobs:
       - name: Build, verify, and package the app
         env:
           BRIDGE_PACKAGE_DIR: ${{ runner.temp }}/BridgePackage
-        run: bash scripts/package_macos.sh
+        run: |
+          bridge_package_status=0
+          bash scripts/package_macos.sh > "$RUNNER_TEMP/bridge-package.log" 2>&1 || bridge_package_status=$?
+          cat "$RUNNER_TEMP/bridge-package.log"
+          {
+            printf '%s\n' '## Package verification output' '```text'
+            tail -n 180 "$RUNNER_TEMP/bridge-package.log"
+            printf '%s\n' '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$bridge_package_status"
       - name: Publish preview release
         if: startsWith(github.ref, 'refs/tags/')
         env:
