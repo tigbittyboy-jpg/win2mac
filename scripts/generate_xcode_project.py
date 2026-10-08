@@ -88,7 +88,9 @@ for target, kind in [("BridgeCore", "framework"), ("Bridge", "application"), ("B
         settings["LD_RUNPATH_SEARCH_PATHS"] = ["$(inherited)", "@executable_path/../Frameworks",
                                                "@loader_path/../Frameworks", "$(BUILT_PRODUCTS_DIR)"]
     if target == "BridgeCore":
-        settings.update({"DEFINES_MODULE": "YES", "SKIP_INSTALL": "YES"})
+        settings.update({"DEFINES_MODULE": "YES", "SKIP_INSTALL": "YES",
+                         "DYLIB_INSTALL_NAME_BASE": "@rpath",
+                         "LD_DYLIB_INSTALL_NAME": "@rpath/$(EXECUTABLE_PATH)"})
     elif target == "Bridge":
         settings.update({"ENABLE_APP_SANDBOX": "NO", "ENABLE_HARDENED_RUNTIME": "YES",
                          "INFOPLIST_KEY_CFBundleDisplayName": "Bridge",

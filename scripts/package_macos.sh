@@ -20,7 +20,10 @@ bridge_app="$bridge_derived/Build/Products/Release/Bridge.app"
 codesign --verify --deep --strict --verbose=2 "$bridge_app"
 lipo "$bridge_app/Contents/MacOS/Bridge" -verify_arch arm64
 lipo "$bridge_app/Contents/Frameworks/BridgeCore.framework/BridgeCore" -verify_arch arm64
-otool -L "$bridge_app/Contents/MacOS/Bridge"
+bridge_links="$bridge_output/linked-libraries.txt"
+otool -L "$bridge_app/Contents/MacOS/Bridge" > "$bridge_links"
+cat "$bridge_links"
+awk '$1 ~ /BridgeCore.framework/ && $1 !~ /^@rpath\// { bad=1 } END { exit bad }' "$bridge_links"
 
 # Confirm framework loading and native process startup without an interactive GUI.
 # This executes only the app built from this checkout, never a Wine runtime/EXE.
