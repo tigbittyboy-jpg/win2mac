@@ -23,9 +23,14 @@ codesign --force --sign - --options runtime "$bridge_app"
 codesign --verify --deep --strict --verbose=2 "$bridge_app"
 codesign --display --verbose=4 "$bridge_app" 2> "$bridge_output/signature.txt"
 cat "$bridge_output/signature.txt"
-grep -q '(runtime)' "$bridge_output/signature.txt" || {
-    printf '%s\n' 'Packaged Bridge must retain hardened runtime.' >&2; exit 1;
-}
+python3 - "$bridge_output/signature.txt" <<'PY'
+from pathlib import Path
+import re
+import sys
+flags = re.search(r'flags=0x([0-9a-fA-F]+)', Path(sys.argv[1]).read_text())
+if flags is None or not int(flags.group(1), 16) & 0x10000:
+    raise SystemExit('Packaged Bridge must retain hardened runtime.')
+PY
 lipo "$bridge_app/Contents/MacOS/Bridge" -verify_arch arm64
 bridge_links="$bridge_output/linked-libraries.txt"
 otool -L "$bridge_app/Contents/MacOS/Bridge" > "$bridge_links"
