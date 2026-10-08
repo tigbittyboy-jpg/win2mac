@@ -18,6 +18,10 @@ The [preview.10 workflow](https://github.com/tigbittyboy-jpg/win2mac/actions/run
 
 The public preview.10 ZIP was downloaded independently: CRC and SHA-256 matched, native ARM64/minimum macOS 14/build 10 matched, and the retained static linkage/hardened ad hoc signing flags passed inspection. SHA-256: `8380e2923cb50fa2614c3c6add8394f5510a501bab22aa7a0a5316d60b05ed79`. Runtime setup guidance records the current Homebrew `wine-stable` cask as disabled for Gatekeeper failure and links the maintainer's manual installation instructions; no runtime was downloaded, installed, or executed here.
 
+The [preview.11 workflow](https://github.com/tigbittyboy-jpg/win2mac/actions/runs/37848390108) **passed** for commit `c968855`: macOS XCTest, signed Release compilation, extracted-ZIP signature verification and visible-window/library startup on macOS 14, 15, and 26, then public prerelease publication. The suite now contains 25 backend and four macOS model cases. New checks verify refused unapproved execution, the exact WineD3D Vulkan environment on a mocked launch, reversal to runtime defaults, persistent per-bottle selection, and display of the override in launch approval without executing Wine or changing prefix files. The [main build/test workflow](https://github.com/tigbittyboy-jpg/win2mac/actions/runs/37848387772) also passed.
+
+The public preview.11 ZIP was independently downloaded: CRC and published SHA-256 matched, native ARM64/minimum macOS 14/build 11 matched, and no BridgeCore dynamic dependency or absolute runpath was present. Embedded signature flags retain ad hoc signing and hardened runtime. SHA-256: `62ad41585748d66757de0955ed7629cb97bc300eb59ffaee781f87436144695e`. These checks do **not** validate WineD3D Vulkan rendering, the user-reported Unity demo, or any Windows executable. The setting requests a runtime feature; it is not a confirmed compatibility fix. See [graphics troubleshooting](GRAPHICS_TROUBLESHOOTING.md).
+
 ## Executed checks
 
 - Swift 6.0.3 compilation of every BridgeCore source file with Swift 6 strict concurrency: **passed**.
