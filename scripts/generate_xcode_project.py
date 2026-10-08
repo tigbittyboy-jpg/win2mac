@@ -51,7 +51,7 @@ product_refs = {}
 groups = []
 source_phases = {}
 for target, folder, extension, file_type in [
-    ("BridgeCore", "Sources/BridgeCore", "framework", "wrapper.framework"),
+    ("BridgeCore", "Sources/BridgeCore", "a", "archive.ar"),
     ("Bridge", "Sources/BridgeApp", "app", "wrapper.application"),
     ("BridgeCoreTests", "Tests/BridgeCoreTests", "xctest", "wrapper.cfbundle"),
 ]:
@@ -66,14 +66,15 @@ for target, folder, extension, file_type in [
     source_phases[target] = add(target + "Sources", "PBXSourcesBuildPhase", buildActionMask=2147483647,
                                files=builds, runOnlyForDeploymentPostprocessing=0)
     product_refs[target] = add(target + "Product", "PBXFileReference", explicitFileType=file_type,
-                               includeInIndex=0, path=target + "." + extension, sourceTree="BUILT_PRODUCTS_DIR")
+                               includeInIndex=0, path=("lib" if target == "BridgeCore" else "") + target + "." + extension,
+                               sourceTree="BUILT_PRODUCTS_DIR")
 
 project_id = identifier("Project")
 targets = []
-for target, kind in [("BridgeCore", "framework"), ("Bridge", "application"), ("BridgeCoreTests", "bundle.unit-test")]:
+for target, kind in [("BridgeCore", "library.static"), ("Bridge", "application"), ("BridgeCoreTests", "bundle.unit-test")]:
     settings = dict(common)
     settings.update({"PRODUCT_NAME": "$(TARGET_NAME)", "PRODUCT_BUNDLE_IDENTIFIER": "org.bridge-launcher." + target,
-                     "GENERATE_INFOPLIST_FILE": "YES", "CURRENT_PROJECT_VERSION": "1",
+                     "GENERATE_INFOPLIST_FILE": "YES", "CURRENT_PROJECT_VERSION": "6",
                      "MARKETING_VERSION": "0.1.0"})
     linked = []
     dependencies = []
@@ -86,11 +87,14 @@ for target, kind in [("BridgeCore", "framework"), ("Bridge", "application"), ("B
         dependencies.append(add(target + "CoreDependency", "PBXTargetDependency",
                                 target=identifier("BridgeCoreTarget"), targetProxy=proxy))
         settings["LD_RUNPATH_SEARCH_PATHS"] = ["$(inherited)", "@executable_path/../Frameworks",
-                                               "@loader_path/../Frameworks", "$(BUILT_PRODUCTS_DIR)"]
+                                               "@loader_path/../Frameworks"]
     if target == "BridgeCore":
+        # Keep the Swift module boundary, but link our code into each consumer.
+        # Ad hoc previews have no Apple Team ID; a separate non-platform dylib
+        # can be rejected by hardened-runtime library validation after download.
         settings.update({"DEFINES_MODULE": "YES", "SKIP_INSTALL": "YES",
-                         "DYLIB_INSTALL_NAME_BASE": "@rpath",
-                         "LD_DYLIB_INSTALL_NAME": "@rpath/$(EXECUTABLE_PATH)"})
+                         "MACH_O_TYPE": "staticlib", "EXECUTABLE_PREFIX": "lib",
+                         "GENERATE_INFOPLIST_FILE": "NO"})
     elif target == "Bridge":
         settings.update({"ENABLE_APP_SANDBOX": "NO", "ENABLE_HARDENED_RUNTIME": "YES",
                          "INFOPLIST_KEY_CFBundleDisplayName": "Bridge",
@@ -100,12 +104,6 @@ for target, kind in [("BridgeCore", "framework"), ("Bridge", "application"), ("B
         settings["SKIP_INSTALL"] = "YES"
     phases.append(add(target + "Frameworks", "PBXFrameworksBuildPhase", buildActionMask=2147483647,
                       files=linked, runOnlyForDeploymentPostprocessing=0))
-    if target == "Bridge":
-        embed = add("BridgeCoreEmbed", "PBXBuildFile", fileRef=product_refs["BridgeCore"],
-                     settings={"ATTRIBUTES": ["CodeSignOnCopy", "RemoveHeadersOnCopy"]})
-        phases.append(add("BridgeEmbedFrameworks", "PBXCopyFilesBuildPhase", buildActionMask=2147483647,
-                          dstPath="", dstSubfolderSpec=10, files=[embed], name="Embed Frameworks",
-                          runOnlyForDeploymentPostprocessing=0))
     targets.append(add(target + "Target", "PBXNativeTarget", name=target, productName=target,
                         buildConfigurationList=configuration_list(target, settings), buildPhases=phases,
                         buildRules=[], dependencies=dependencies, productReference=product_refs[target],

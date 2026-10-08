@@ -4,7 +4,9 @@ Download **Bridge-macOS-arm64.zip** under Assets, extract it, and move Bridge.ap
 
 This preview is **ad hoc signed, not Developer ID signed or Apple-notarized**. macOS may block a downloaded preview. Bridge does not remove quarantine or disable Gatekeeper. If macOS offers no approved way to open it, use the source build with Xcode or wait for a notarized release. Managed/public notarized distribution is not available yet.
 
-The release workflow runs macOS XCTest, builds the native ARM64 app, verifies its ad hoc bundle signatures, checks executable/framework architecture, and runs a headless app startup check before packaging. Those checks are not real Windows/game compatibility tests or an interactive UI test. No Windows executable or Wine runtime is downloaded or launched by the release workflow.
+This update fixes preview.5's startup crash: macOS rejected the embedded BridgeCore framework because of a signing Team ID mismatch. BridgeCore is now linked directly into the app. Hardened runtime and library validation remain enabled.
+
+The release workflow requires macOS XCTest, ARM64 Release compilation, signature/architecture checks, and opening a freshly extracted ZIP copy through LaunchServices. A smoke test requires a visible SwiftUI window and successful library loading before publication. Verification runs on macOS 14 and 26; packaging also runs on macOS 15. The reported macOS 27 system is not available on these hosted runners. These checks do not exercise file panels, real Windows/game compatibility, or a quarantined browser download. No Windows executable or Wine runtime is downloaded or launched by the release workflow.
 
 SHA256SUMS.txt records archive integrity. It is not a publisher signature or notarization certificate. The build source and workflow are public in this repository.
 

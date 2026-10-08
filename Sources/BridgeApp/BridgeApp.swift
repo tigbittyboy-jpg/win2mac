@@ -4,10 +4,17 @@ import BridgeCore
 
 @main
 struct BridgeApp: App {
-    @StateObject private var model = BridgeModel()
+    @StateObject private var model: BridgeModel
     init() {
+        if let report = StartupProbe.reportURL {
+            // A fresh store exercises normal load/UI without reading user data.
+            _model = StateObject(wrappedValue: BridgeModel(library: ApplicationLibrary(
+                file: report.deletingLastPathComponent().appendingPathComponent("smoke-library.json"))))
+        } else {
+            _model = StateObject(wrappedValue: BridgeModel())
+        }
         if CommandLine.arguments.contains("--bridge-self-check") {
-            // Exercise app/framework loading without launching UI or external software.
+            // Check native process startup without launching external software.
             let graphics = GraphicsManager()
             guard graphics.capabilities().contains(where: { $0.configurable }), HostCapabilities.current.isMacOS else {
                 exit(EXIT_FAILURE)
@@ -20,7 +27,10 @@ struct BridgeApp: App {
         WindowGroup("Bridge") {
             ContentView(model: model)
                 .frame(minWidth: 900, minHeight: 650)
-                .task { await model.load() }
+                .task {
+                    await model.load()
+                    await StartupProbe.checkWindow(model: model)
+                }
         }
         .defaultSize(width: 1100, height: 760)
     }

@@ -8,7 +8,43 @@ permissions:
   contents: read
 
 jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-26]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Test, package, and launch a fresh copy
+        env:
+          BRIDGE_PACKAGE_DIR: ${{ runner.temp }}/BridgePackage
+        run: |
+          bridge_status=0
+          {
+            xcodebuild -version
+            xcodebuild -project Bridge.xcodeproj -scheme Bridge -configuration Debug \
+              -destination 'platform=macOS,arch=arm64' ARCHS=arm64 CODE_SIGNING_ALLOWED=NO test && \
+              bash scripts/package_macos.sh
+          } > "$RUNNER_TEMP/bridge-package.log" 2>&1 || bridge_status=$?
+          cat "$RUNNER_TEMP/bridge-package.log"
+          exit "$bridge_status"
+      - name: Preserve failed verification diagnostics
+        if: failure()
+        run: |
+          if [[ -f "$RUNNER_TEMP/bridge-package.log" ]]; then
+            bridge_tag="bridge-packaging-diagnostics-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-${{ matrix.os }}"
+            tail -n 100 "$RUNNER_TEMP/bridge-package.log" > "$RUNNER_TEMP/bridge-diagnostics.txt"
+            git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              tag -a "$bridge_tag" -F "$RUNNER_TEMP/bridge-diagnostics.txt"
+            git push origin "refs/tags/$bridge_tag"
+          fi
   package:
+    needs: verify
     runs-on: macos-15
     timeout-minutes: 15
     permissions:

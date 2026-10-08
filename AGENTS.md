@@ -24,7 +24,7 @@ xcodebuild -project Bridge.xcodeproj -scheme Bridge -destination 'platform=macOS
 open Bridge.xcodeproj
 ```
 
-Preview packages: `BRIDGE_PACKAGE_DIR=/absolute/path/outside/checkout bash scripts/package_macos.sh`. Tag `v*` workflows test, ad hoc sign, verify architecture/framework loading, and publish an explicitly non-notarized prerelease. Never describe ad hoc signing as Developer ID trust or notarization. Shipping notarized builds requires a separate signing workflow and securely provided credentials.
+Preview packages: `BRIDGE_PACKAGE_DIR=/absolute/path/outside/checkout bash scripts/package_macos.sh`. BridgeCore must remain statically linked; do not reintroduce an embedded ad hoc signed framework or disable library validation to resolve preview signing errors. Tag `v*` workflows test, ad hoc sign, verify architecture, and require a visible window/library load from an extracted ZIP through LaunchServices before publishing. Hosted verification covers macOS 14 and 26; package creation runs on 15. Never describe ad hoc signing as Developer ID trust or notarization. Shipping notarized builds requires a separate signing workflow and securely provided credentials.
 
 Linux (backend validation only): `swift test --jobs 4`. SwiftUI is deliberately excluded from the Linux package graph. Linux success does not verify the macOS app, Rosetta, Metal, or Windows compatibility.
 

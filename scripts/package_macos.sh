@@ -19,15 +19,28 @@ bridge_app="$bridge_derived/Build/Products/Release/Bridge.app"
 # Ad hoc signing preserves bundle integrity; it is not Developer ID notarization.
 codesign --verify --deep --strict --verbose=2 "$bridge_app"
 lipo "$bridge_app/Contents/MacOS/Bridge" -verify_arch arm64
-lipo "$bridge_app/Contents/Frameworks/BridgeCore.framework/BridgeCore" -verify_arch arm64
 bridge_links="$bridge_output/linked-libraries.txt"
 otool -L "$bridge_app/Contents/MacOS/Bridge" > "$bridge_links"
 cat "$bridge_links"
-awk '$1 ~ /BridgeCore.framework/ && $1 !~ /^@rpath\// { bad=1 } END { exit bad }' "$bridge_links"
+if grep -q 'BridgeCore' "$bridge_links"; then
+    printf '%s\n' 'BridgeCore must be statically linked; a runtime dependency would reintroduce the preview signing crash.' >&2
+    exit 1
+fi
+[[ ! -d "$bridge_app/Contents/Frameworks/BridgeCore.framework" ]] || {
+    printf '%s\n' 'Unexpected embedded BridgeCore framework.' >&2; exit 1;
+}
+otool -l "$bridge_app/Contents/MacOS/Bridge" > "$bridge_output/load-commands.txt"
+if grep -Eq '/Users/runner/|/DerivedData/' "$bridge_output/load-commands.txt"; then
+    printf '%s\n' 'App load commands must not depend on a builder directory.' >&2; exit 1
+fi
 
-# Confirm framework loading and native process startup without an interactive GUI.
+# Confirm native process startup, then exercise the actual window after ZIP extraction.
 # This executes only the app built from this checkout, never a Wine runtime/EXE.
 "$bridge_app/Contents/MacOS/Bridge" --bridge-self-check
 ditto -c -k --sequesterRsrc --keepParent "$bridge_app" "$bridge_output/Bridge-macOS-arm64.zip"
+bridge_extracted="$(mktemp -d "$bridge_output/extracted.XXXXXX")"
+ditto -x -k "$bridge_output/Bridge-macOS-arm64.zip" "$bridge_extracted"
+codesign --verify --deep --strict --verbose=2 "$bridge_extracted/Bridge.app"
+python3 scripts/verify_macos_launch.py "$bridge_extracted/Bridge.app" "$bridge_extracted/startup.json"
 (cd "$bridge_output" && shasum -a 256 Bridge-macOS-arm64.zip > SHA256SUMS.txt)
 printf '%s\n' "Packaged $bridge_output/Bridge-macOS-arm64.zip"
