@@ -1,0 +1,30 @@
+# Manual macOS DXVK integration — DirectX 10/11
+
+Bridge can import the **macOS DXVK fork's x64 Direct3D libraries** into an initialized bottle. This replaces WineD3D's Direct3D 10/11 implementation for approved launches. Wine, Rosetta as required, and a working compatible MoltenVK/Vulkan runtime must already be installed. This is an experimental provider integration, not a DirectX implementation written by Bridge or a confirmed game fix.
+
+## Obtain the correct package
+
+The [Gcenx/DXVK-macOS provider](https://github.com/Gcenx/DXVK-macOS/tree/1.10.x) documents native `d3d11.dll` and `d3d10core.dll` with Wine's built-in DXGI. The [release requirements](https://github.com/Gcenx/DXVK-macOS/releases/tag/v1.10.3-20230507) list Wine 7.1+ and Vulkan 1.2/MoltenVK 1.2.0+, with additional engine-specific functionality. Those minimums alone do not certify a current Wine Devel/MoltenVK/macOS combination. The releases are older, support DirectX 10/11 only, and differ from modern upstream DXVK. Check the provider's documentation and license for your runtime; do not modify a commercial engine against its provider instructions.
+
+The provider's [20230507 repack release](https://github.com/Gcenx/DXVK-macOS/releases/tag/v1.10.3-20230507-repack) has a [native package](https://github.com/Gcenx/DXVK-macOS/releases/download/v1.10.3-20230507-repack/dxvk-macOS-async-v1.10.3-20230507-repack.tar.gz) whose extracted `x64` directory contains the two required DLLs. Choose the native package, **not the `-builtin` package**, another platform's package, or arbitrary DLL downloads. No `dxgi.dll` is needed for this adapter. Bridge does not download this archive, validate its publisher signature, or attest that selected DLLs actually came from that project. User file selection and subsequent explicit approval establish which supplied bytes may be installed; they do not establish publisher trust.
+
+## Import and launch
+
+1. Close all Wine programs using the bottle, including detached games. Bridge tracks its own operations, not independently running Wine processes.
+2. Download a trusted provider-compatible package and extract it in Finder. Keep it outside the Bridge source checkout.
+3. In Bridge's **Library**, select the game and its existing bottle. Choose **Import macOS DXVK x64 Libraries…** in the graphics controls (also available in **Bottles**). Select the extracted **x64** directory, not the archive, x32 directory, app, or DLL itself.
+4. Review and approve the file change. Bridge captures the supplied bytes before approval, checks AMD64 PE32+ DLL headers, backs up existing `d3d11.dll` and `d3d10core.dll`, and imports only those files into `drive_c/windows/system32`. Architecture inspection does not authenticate the publisher. It does not execute Wine, edit the registry, import `dxgi.dll`, or change other game files.
+5. The graphics selection becomes **DXVK macOS (DirectX 10/11)**. For a Unity Windows game such as the reported demo, replace previous `-force-vulkan` arguments with `-force-d3d11` (one argument per line) and save arguments. This requests the Direct3D 11 API supported by this adapter; support for the flag still depends on the game build. Launch and separately approve execution. The approval shows `WINEDLLOVERRIDES=d3d11,d3d10core=n;dxgi=b`. Native-only Direct3D overrides prevent silently falling back to WineD3D when native DLLs cannot load. DXVK information goes to Process Output; file logging is disabled for this launch.
+6. Check for **DXVK** version/adapter/device lines. If it still fails, share the probed Wine version and the DXVK/Direct3D error lines. A generic DirectX dialog or exit code 0 does not indicate whether this backend worked. Game-local replacement DLLs and provider wrappers can affect actual DLL selection; only logs and rendering on the target Mac can verify it.
+
+The import is per bottle and affects every application launched with its recorded DXVK selection. Bridge does not claim DirectX 12 support, add unsupported Vulkan features, configure async shader compilation, or remove macOS security protections. Provider configurations can still apply; this adapter is not a universal engine adapter.
+
+## Restore original DLLs
+
+Close programs using the bottle, then choose **Restore Original Direct3D DLLs…** and approve. Bridge verifies the current DLLs match the imported snapshots, restores prior files/symlinks (or removes newly added files), and restores the previous graphics selection. **Restore before switching graphics backends**: leaving native DLLs in a prefix can affect Wine's normal load order even after environment overrides are removed. Bridge blocks that ambiguous transition and launches with mismatched metadata.
+
+Backups and a transaction record are stored under the prefix's `.bridge-dxvk` directory. Do not delete that directory while replacements are installed. Modified DLLs, missing backups, a different bottle identity, symlinked system directories, and interrupted transactions prevent automatic launch/restoration. On interruption, preserve the prefix and `.bridge-dxvk` backups for manual recovery after all Wine processes have stopped. Restoration is not crash-atomic across multiple files; a journal keeps incomplete states visible and prevents normal execution. File permissions, simultaneous external modifications, and cross-instance access remain Phase 1 limitations. No automatic runtime download, graphics update, or migration is included.
+
+## Validation boundary
+
+Automated tests use synthetic PE DLL headers and mocked Wine execution, checking approval refusal, native Direct3D/built-in DXGI launch settings, backup restoration, source-byte capture, modified-file refusal, invalid architectures, symlinked directories, and active bottle leases. The native provider archive was inspected as data only: its x64 layout and PE DLL headers matched this adapter. **No provider DLL, Wine engine, CARL demo, or other Windows software was executed in the cloud or hosted CI.** Real rendering and compatibility require the target Mac.

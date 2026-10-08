@@ -126,5 +126,55 @@ final class BridgeModelTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(restored.bottles.first?.graphics, .runtimeDefault)
         XCTAssertFalse(FileManager.default.fileExists(atPath: bottle.prefix.path))
     }
+    @MainActor
+    func testDXVKImportAndRestoreRequireApprovalPersistAndNeverExecuteWine() async throws {
+        let sample = try fixture(); defer { try? FileManager.default.removeItem(at: sample.root) }
+        let executor = MockExecutor()
+        let runtimes = RuntimeManager(executor: executor, host: host, discoveryPaths: [])
+        var engine = try runtimes.inspect(sample.runtime); engine.supportsWindowsX64 = true
+        let bottle = Bottle(name: "Test", prefix: sample.root.appendingPathComponent("prefix"), runtimeID: engine.id)
+        let system = bottle.prefix.appendingPathComponent("drive_c/windows/system32")
+        try FileManager.default.createDirectory(at: system, withIntermediateDirectories: true)
+        try Data().write(to: bottle.prefix.appendingPathComponent("system.reg"))
+        let directory = sample.root.appendingPathComponent("x64")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var bytes = [UInt8](repeating: 0, count: 90)
+        bytes[0] = 0x4d; bytes[1] = 0x5a; bytes[60] = 64
+        bytes[64] = 0x50; bytes[65] = 0x45; bytes[68] = 0x64; bytes[69] = 0x86
+        bytes[87] = 0x20; bytes[88] = 0x0b; bytes[89] = 2
+        for name in DXVKInstaller.libraryNames { try Data(bytes).write(to: directory.appendingPathComponent(name)) }
+        let app = ApplicationEntry(name: "Game", executable: sample.root.appendingPathComponent("Game.exe"), bottleID: bottle.id)
+        var snapshot = LibrarySnapshot(); snapshot.runtimes = [engine]; snapshot.bottles = [bottle]; snapshot.applications = [app]
+        let library = ApplicationLibrary(file: sample.root.appendingPathComponent("library.json"))
+        try await library.save(snapshot)
+        let model = BridgeModel(library: library, runtimes: runtimes, bottles: BottleManager(executor: executor, runtimes: runtimes))
+        await model.load()
+        model.requestDXVKImport(directory: directory, bottle: bottle)
+        let approval = try XCTUnwrap(model.pendingApproval)
+        XCTAssertTrue(approval.changesFiles)
+        XCTAssertTrue(approval.details.contains("DXGI is unchanged"))
+        XCTAssertFalse(DXVKInstaller.hasInstallation(bottle))
+        model.approve(approval); try await waitForOperation(model)
+        XCTAssertNil(model.errorMessage)
+        let saved = try await library.load()
+        let installed = try XCTUnwrap(saved.bottles.first)
+        XCTAssertEqual(installed.graphics, .dxvkMoltenVK)
+        try DXVKInstaller.validateInstallation(installed)
+        model.requestLaunch()
+        XCTAssertTrue(try XCTUnwrap(model.pendingApproval).details.contains("WINEDLLOVERRIDES=d3d11,d3d10core=n;dxgi=b"))
+        model.pendingApproval = nil
+        model.setBottleGraphics(.runtimeDefault, bottleID: bottle.id); try await waitForOperation(model)
+        XCTAssertNotNil(model.errorMessage, "Backend cannot change while native DLLs remain installed")
+        model.errorMessage = nil
+        model.requestDXVKRestore(installed)
+        XCTAssertTrue(DXVKInstaller.hasInstallation(installed))
+        model.approve(try XCTUnwrap(model.pendingApproval)); try await waitForOperation(model)
+        XCTAssertNil(model.errorMessage)
+        let restored = try await library.load()
+        XCTAssertEqual(restored.bottles.first?.graphics, .runtimeDefault)
+        XCTAssertFalse(DXVKInstaller.hasInstallation(installed))
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: system.path).isEmpty)
+        let commands = await executor.requests; XCTAssertTrue(commands.isEmpty)
+    }
 }
 #endif

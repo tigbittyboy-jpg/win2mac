@@ -86,6 +86,10 @@ public actor BottleManager: BottleManaging {
     }
     public func configure(_ bottle: Bottle, name: String, graphics: GraphicsBackend) throws -> Bottle {
         guard !active.contains(try PrefixPolicy.canonical(bottle.prefix).path) else { throw BridgeError.busy }
+        if DXVKInstaller.hasInstallation(bottle), graphics != .dxvkMoltenVK {
+            throw BridgeError.invalidPrefix("Restore the imported DXVK DLLs before switching graphics backends.")
+        }
+        if graphics == .dxvkMoltenVK { try DXVKInstaller.validateInstallation(bottle) }
         _ = try GraphicsManager().environment(for: graphics)
         var updated = bottle; updated.name = name; updated.graphics = graphics
         return updated

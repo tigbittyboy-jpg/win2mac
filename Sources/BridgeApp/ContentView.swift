@@ -28,13 +28,13 @@ struct ContentView: View {
         }
         .sheet(item: $model.pendingApproval) { approval in
             VStack(alignment: .leading, spacing: 16) {
-                Text("Approve software execution").font(.title2)
+                Text(approval.title).font(.title2)
                 Text(approval.details).font(.system(.body, design: .monospaced)).textSelection(.enabled)
-                Text("This software runs with your user permissions and may access your files and network. A Wine prefix is not a security sandbox. Approve only software and runtimes you trust.")
+                Text(approval.changesFiles ? "These libraries will run with your user permissions when you separately approve an application launch. Use a trusted macOS DXVK package documented for your runtime. Importing files is not proof of compatibility." : "This software runs with your user permissions and may access your files and network. A Wine prefix is not a security sandbox. Approve only software and runtimes you trust.")
                 HStack {
                     Spacer()
                     Button("Cancel") { model.pendingApproval = nil }.keyboardShortcut(.cancelAction)
-                    Button("Approve and Run") { model.approve(approval) }
+                    Button(approval.actionTitle) { model.approve(approval) }
                 }
             }.padding(24).frame(width: 620)
         }
@@ -116,13 +116,20 @@ struct ContentView: View {
             Picker("Graphics", selection: Binding(get: {
                 model.snapshot.bottles.first(where: { $0.id == bottle.id })?.graphics ?? bottle.graphics
             }, set: { model.setBottleGraphics($0, bottleID: bottle.id) })) {
-                ForEach(GraphicsManager().capabilities().filter(\.configurable), id: \.backend) { capability in
+                ForEach(GraphicsManager().capabilities().filter { $0.configurable && ($0.backend != .dxvkMoltenVK || DXVKInstaller.hasInstallation(bottle)) }, id: \.backend) { capability in
                     Text(capability.backend.displayName).tag(capability.backend)
                 }
-                if !GraphicsManager().capabilities().contains(where: { $0.backend == bottle.graphics && $0.configurable }) {
+                if !GraphicsManager().capabilities().contains(where: { $0.backend == bottle.graphics && $0.configurable && ($0.backend != .dxvkMoltenVK || DXVKInstaller.hasInstallation(bottle)) }) {
                     Text(bottle.graphics.displayName).tag(bottle.graphics)
                 }
-            }.disabled(!model.canEdit)
+            }.disabled(!model.canEdit || DXVKInstaller.hasInstallation(bottle))
+            if DXVKInstaller.hasInstallation(bottle) {
+                Text("DXVK import/backups present. Restore original DLLs before changing graphics backends.").font(.caption)
+                Button("Restore Original Direct3D DLLs…") { model.requestDXVKRestore(bottle) }.disabled(!model.canEdit)
+            } else {
+                Button("Import macOS DXVK x64 Libraries…") { model.importDXVK(bottle) }.disabled(!model.canEdit)
+            }
+            Link("DirectX 11 setup and supported package layout", destination: URL(string: "https://github.com/tigbittyboy-jpg/win2mac/blob/main/docs/DXVK_SETUP.md")!).font(.caption)
             if bottle.graphics == .wineD3DVulkan {
                 Text("Requires Wine's Vulkan renderer and compatible Vulkan/Metal support in your installed runtime. Experimental; game compatibility is not guaranteed. Applies to all applications using this bottle.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -191,7 +198,7 @@ struct ContentView: View {
                     Button("Use Existing Prefix…") { model.associateExistingPrefix() }
                         .disabled(!model.canEdit || model.selectedRuntime == nil)
                 }
-                Text("Creation needs a new directory and executes wineboot with approval. Existing prefixes must contain drive_c and system.reg. Graphics settings below affect future launches; no backend libraries are installed.").font(.caption)
+                Text("Creation needs a new directory and executes wineboot with approval. Existing prefixes must contain drive_c and system.reg. Optional graphics imports below require separate approval.").font(.caption)
                 Divider()
                 ForEach(model.snapshot.bottles) { bottle in
                     HStack {

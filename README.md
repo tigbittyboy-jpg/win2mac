@@ -11,7 +11,7 @@ A native SwiftUI Windows compatibility launcher for Apple Silicon Macs. **Phase 
 - Persistent application, argument, runtime, and bottle records in versioned JSON.
 - Approved launches through Foundation.Process, separate stdout/stderr, exit status, launch errors, cancellation, and bounded capture.
 - Protocols and injected services; XCTest mocked execution and trusted system-process integration tests.
-- Graphics capability descriptions, runtime-default settings and optional experimental WineD3D Vulkan configuration; diagnostic path redaction.
+- Runtime-default settings, optional WineD3D Vulkan configuration, and approved manual import/restoration of macOS DXVK x64 DirectX 10/11 libraries; diagnostic path redaction.
 
 ## Download the preview app — no Xcode required
 
@@ -84,7 +84,7 @@ The default library is `~/Library/Application Support/Bridge/library.json`; defa
 - Library decode error: the file is preserved and editing is disabled. Back up the original before repairing JSON. Unknown schema versions are rejected. Persistence is atomic for one app instance; simultaneous Bridge instances are not supported in Phase 1.
 - Diagnostics: paths are redacted where practical, but output can contain secrets or private documents. Review the report before copying/sharing. The inherited process environment is never included.
 
-The frontend uses the installed engine's graphics components. **Graphics → WineD3D Vulkan (experimental)** in an application's details or its bottle requests the runtime's built-in Vulkan renderer for approved launches. This is per bottle and saves automatically; choose **Runtime default** to revert. No WineD3D/DXVK/MoltenVK/D3DMetal libraries or DLL overrides are installed. Real 3D compatibility requires a correctly configured engine with the appropriate features. See [graphics troubleshooting](docs/GRAPHICS_TROUBLESHOOTING.md).
+The frontend uses the installed engine's graphics components. **Graphics → WineD3D Vulkan (experimental)** in an application's details or its bottle requests the runtime's built-in Vulkan renderer for approved launches. This is per bottle and saves automatically; choose **Runtime default** to revert. No libraries are installed by that setting. A separate **Import macOS DXVK x64 Libraries…** action can import user-supplied Direct3D 10/11 DLLs with approval and backups; see [DXVK setup](docs/DXVK_SETUP.md). Bridge does not download or bundle graphics engines. Real 3D compatibility requires a correctly configured engine with the appropriate features. See [graphics troubleshooting](docs/GRAPHICS_TROUBLESHOOTING.md).
 
 ## Development environment and limits
 

@@ -19,3 +19,7 @@ The maintainer documents 32/64-bit Windows execution, but Bridge Phase 1 accepts
 5. Enter a bottle name and a new prefix directory. **Create Bottle…** becomes available after runtime configuration is saved; it presents an execution approval before running `wineboot`. No runtime is executed just by selecting it or opening Bottles.
 
 Existing Wine prefixes can be associated with their compatible runtime. CrossOver and other engines may require provider-specific environment setup or adapters; selecting an arbitrary private binary from an app bundle is not a supported integration claim.
+
+## Probe file-access warnings
+
+A `sandbox_extension_issue_file_to_process ... Operation not permitted` warning around Wine Devel in Downloads is separate from a game's DirectX failure. Follow the provider's installation path: move the app to Applications, open it normally using any macOS-approved flow offered, and reselect its Wine command-line executable in Bridge. An app launcher script may ignore `--version`; do not confuse the outer app launcher with the documented Wine CLI. Bridge accepts an actual Wine version line, not merely the word Wine in a warning pathname. A real version line plus a warning may still identify the runtime; probe success remains separate from game compatibility. Do not remove quarantine, disable Gatekeeper, or grant unrelated broad filesystem access to silence the warning.

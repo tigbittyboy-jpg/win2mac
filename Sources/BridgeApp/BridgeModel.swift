@@ -21,9 +21,16 @@ struct ExecutionApproval: Identifiable {
         case probe(WineRuntime)
         case createBottle(name: String, prefix: URL, runtime: WineRuntime)
         case launch(ApplicationEntry, Bottle, WineRuntime)
+        case installDXVK(DXVKPackage, Bottle)
+        case restoreDXVK(Bottle)
     }
     let id = UUID()
     let operation: Operation
+    var changesFiles: Bool {
+        switch operation { case .installDXVK, .restoreDXVK: true; default: false }
+    }
+    var title: String { changesFiles ? "Approve graphics file changes" : "Approve software execution" }
+    var actionTitle: String { changesFiles ? "Approve Changes" : "Approve and Run" }
     var details: String {
         switch operation {
         case .probe(let runtime):
@@ -34,6 +41,10 @@ struct ExecutionApproval: Identifiable {
             let overrides = (try? GraphicsManager().environment(for: bottle.graphics)) ?? [:]
             let settings = overrides.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: "\n")
             return "Launch ‘\(app.name)’:\n\(app.executable.path)\nRuntime: \(runtime.executable.path)\nPrefix: \(bottle.prefix.path)\nGraphics: \(bottle.graphics.displayName)\n\(settings.isEmpty ? "Uses runtime graphics settings" : settings)\nAdditional arguments: \(app.arguments.joined(separator: " | "))"
+        case .installDXVK(let package, let bottle):
+            return "Import user-provided macOS DXVK x64 libraries into ‘\(bottle.name)’:\nSource: \(package.source.path)\nPrefix: \(bottle.prefix.path)\nFiles: d3d11.dll, d3d10core.dll (\(package.byteCount) bytes captured for this approval)\nExisting files are backed up inside .bridge-dxvk. DXGI is unchanged. No Wine or DLL is executed during import. Publisher authenticity is not verified; use a package you trust whose provider supports your runtime. Close all Wine programs using this bottle first."
+        case .restoreDXVK(let bottle):
+            return "Restore original d3d11.dll and d3d10core.dll in:\n\(bottle.prefix.path)\nThis removes the imported replacements and restores the recorded prior graphics selection. No software is executed. Modified imported DLLs or incomplete backup records prevent automatic restoration. Close all Wine programs using this bottle first."
         }
     }
 }
@@ -64,15 +75,18 @@ final class BridgeModel: ObservableObject {
     private let bottles: any BottleManaging
     private let launcher: any LaunchServing
     private let diagnostics: any DiagnosticsCollecting
+    private let graphicsInstaller: any GraphicsInstalling
 
     init(library: any ApplicationLibraryStoring = ApplicationLibrary(),
          runtimes: any RuntimeManaging = RuntimeManager(),
          bottles: any BottleManaging = BottleManager(),
          launcher: (any LaunchServing)? = nil,
-         diagnostics: any DiagnosticsCollecting = DiagnosticsService()) {
+         diagnostics: any DiagnosticsCollecting = DiagnosticsService(),
+         graphicsInstaller: (any GraphicsInstalling)? = nil) {
         self.library = library; self.runtimes = runtimes; self.bottles = bottles
         self.launcher = launcher ?? LaunchService(runtimes: runtimes, bottles: bottles)
         self.diagnostics = diagnostics
+        self.graphicsInstaller = graphicsInstaller ?? DXVKInstaller(bottles: bottles)
     }
     var selectedApplication: ApplicationEntry? { snapshot.applications.first { $0.id == selectedApplicationID } }
     var selectedRuntime: WineRuntime? { snapshot.runtimes.first { $0.id == selectedRuntimeID } }
@@ -249,11 +263,46 @@ final class BridgeModel: ObservableObject {
             try await self.save(next)
         }
     }
+    func importDXVK(_ bottle: Bottle) {
+        guard canEdit else { return }
+        let panel = NSOpenPanel(); panel.title = "Select the extracted macOS DXVK x64 directory"
+        panel.canChooseDirectories = true; panel.canChooseFiles = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        requestDXVKImport(directory: url, bottle: bottle)
+    }
+    func requestDXVKImport(directory: URL, bottle: Bottle) {
+        guard canEdit else { return }
+        do { pendingApproval = ExecutionApproval(operation: .installDXVK(try graphicsInstaller.inspect(directory), bottle)) }
+        catch { errorMessage = error.localizedDescription }
+    }
+    func requestDXVKRestore(_ bottle: Bottle) {
+        guard canEdit else { return }
+        pendingApproval = ExecutionApproval(operation: .restoreDXVK(bottle))
+    }
+    private func saveGraphicsBottle(_ bottle: Bottle) async throws {
+        guard let index = snapshot.bottles.firstIndex(where: { $0.id == bottle.id }) else {
+            throw BridgeError.invalidPrefix("Bottle no longer exists in the library.")
+        }
+        var next = snapshot; next.bottles[index] = bottle
+        try await save(next)
+    }
     func approve(_ request: ExecutionApproval) {
         pendingApproval = nil
         perform {
             self.console = ""; self.lastResult = nil
             switch request.operation {
+            case .installDXVK(let package, let bottle):
+                let updated = try await self.graphicsInstaller.install(package, bottle: bottle, approved: true)
+                do { try await self.saveGraphicsBottle(updated) }
+                catch {
+                    _ = try await self.graphicsInstaller.restore(updated, approved: true)
+                    throw error
+                }
+                self.appendConsole(.init(stream: .stdout, text: "Imported macOS DXVK libraries. No software was executed. Launch approval is still required; rendering compatibility remains untested.\n"))
+            case .restoreDXVK(let bottle):
+                let updated = try await self.graphicsInstaller.restore(bottle, approved: true)
+                try await self.saveGraphicsBottle(updated)
+                self.appendConsole(.init(stream: .stdout, text: "Original Direct3D DLLs and prior graphics selection restored. No software was executed.\n"))
             case .probe(let runtime):
                 let verified = try await self.runtimes.probe(runtime, approved: true, output: self.outputHandler)
                 var next = self.snapshot

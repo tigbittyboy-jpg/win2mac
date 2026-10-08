@@ -30,6 +30,11 @@ public actor LaunchService: LaunchServing {
         running = true; defer { running = false }
         try await bottles.acquire(bottle)
         do {
+            if bottle.graphics == .dxvkMoltenVK {
+                try DXVKInstaller.validateInstallation(bottle)
+            } else if DXVKInstaller.hasInstallation(bottle) {
+                throw BridgeError.invalidPrefix("This bottle has imported or incomplete DXVK files. Select its recorded DXVK backend or restore the original DLLs before launching.")
+            }
             let result = try await executor.run(.init(executable: runtime.executable,
                 arguments: [application.executable.path] + application.arguments, environment: environment,
                 workingDirectory: application.executable.deletingLastPathComponent()), output: output)

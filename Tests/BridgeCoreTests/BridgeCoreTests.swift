@@ -136,6 +136,15 @@ final class BridgeCoreTests: XCTestCase, @unchecked Sendable {
         do { _ = try await manager.probe(try runtime(), approved: true, output: { _ in }); XCTFail("Accepted failed probe") }
         catch { XCTAssertTrue(error is BridgeError) }
     }
+    func testProbeRejectsWinePathWarningsAndStoresOnlyActualVersionLine() async throws {
+        let engine = try runtime()
+        let warning = "sandbox_extension_issue_file_to_process failed for /Users/private/Downloads/Wine Devel.app: 1 (Operation not permitted)"
+        let wrong = RuntimeManager(executor: MockExecutor(result: .init(exitCode: 0, stderr: warning)), host: mac)
+        do { _ = try await wrong.probe(engine, approved: true, output: { _ in }); XCTFail("Accepted a Wine pathname as a version") } catch {}
+        let valid = RuntimeManager(executor: MockExecutor(result: .init(exitCode: 0, stdout: "wine-11.16 (Staging)\n", stderr: warning)), host: mac)
+        let probed = try await valid.probe(engine, approved: true, output: { _ in })
+        XCTAssertEqual(probed.version, "wine-11.16 (Staging)")
+    }
     func testPEValidationRejects32BitAndMalformedFiles() throws {
         XCTAssertNoThrow(try ExecutableValidator.validateX64(exe()))
         XCTAssertThrowsError(try ExecutableValidator.validateX64(exe(machine: [0x4c, 0x01])))
@@ -273,9 +282,9 @@ final class BridgeCoreTests: XCTestCase, @unchecked Sendable {
         let graphics = GraphicsManager()
         XCTAssertEqual(try graphics.environment(for: .runtimeDefault), [:])
         XCTAssertThrowsError(try graphics.environment(for: .d3dMetal))
-        XCTAssertThrowsError(try graphics.environment(for: .dxvkMoltenVK))
+        XCTAssertEqual(try graphics.environment(for: .dxvkMoltenVK)["WINEDLLOVERRIDES"], "d3d11,d3d10core=n;dxgi=b")
         XCTAssertThrowsError(try graphics.environment(for: .wineD3D))
-        XCTAssertEqual(Set(graphics.capabilities().filter(\.configurable).map(\.backend)), [.runtimeDefault, .wineD3DVulkan])
+        XCTAssertEqual(Set(graphics.capabilities().filter(\.configurable).map(\.backend)), [.runtimeDefault, .wineD3DVulkan, .dxvkMoltenVK])
     }
     func testVulkanOverrideIsApprovedAndReversibleWithoutDLLChanges() async throws {
         let engine = try runtime()

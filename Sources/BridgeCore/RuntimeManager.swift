@@ -61,10 +61,13 @@ public struct RuntimeManager: RuntimeManaging {
     public func probe(_ runtime: WineRuntime, approved: Bool, output: @escaping OutputHandler) async throws -> WineRuntime {
         guard approved else { throw BridgeError.approvalRequired }
         try validate(runtime, forLaunch: false)
-        let result = try await executor.run(.init(executable: runtime.executable, arguments: ["--version"], timeout: 15), output: output)
-        let version = (result.stdout + "\n" + result.stderr).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard result.exitCode == 0, !result.wasSignalled, version.lowercased().contains("wine") else {
-            throw BridgeError.invalidRuntime("Runtime version probe failed or did not identify Wine (exit \(result.exitCode)).")
+        let result = try await executor.run(.init(executable: runtime.executable, arguments: ["--version"],
+            workingDirectory: runtime.executable.deletingLastPathComponent(), timeout: 15), output: output)
+        let version = (result.stdout + "\n" + result.stderr).components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { $0.range(of: #"(?i)^wine(?:-|\s+)(?:\d+(?:\.\d+)*|crossover\b)"#, options: .regularExpression) != nil }
+        guard result.exitCode == 0, !result.wasSignalled, let version else {
+            throw BridgeError.invalidRuntime("Runtime version probe failed or returned no Wine version line (exit \(result.exitCode)). Select the provider's Wine command-line executable inside its installed app, not an app launcher that may ignore --version. For Wine Devel in Downloads, move the app to Applications, open it normally, then reselect its executable. Do not disable macOS security controls.")
         }
         var verified = runtime
         verified.version = String(version.prefix(512))
