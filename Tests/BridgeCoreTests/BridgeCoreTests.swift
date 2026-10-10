@@ -51,13 +51,13 @@ final class BridgeCoreTests: XCTestCase, @unchecked Sendable {
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
         return WineRuntime(name: "Test runtime", executable: url, architecture: architecture, supportsWindowsX64: true)
     }
-    private func exe(machine: [UInt8] = [0x64, 0x86]) throws -> URL {
+    private func exe(machine: [UInt8] = [0x64, 0x86], magic: UInt8 = 2) throws -> URL {
         let url = root.appendingPathComponent("Game $(touch hacked); space.exe")
         var bytes = [UInt8](repeating: 0, count: 90)
         bytes[0] = 0x4d; bytes[1] = 0x5a; bytes[60] = 64
         bytes[64] = 0x50; bytes[65] = 0x45
         bytes[68] = machine[0]; bytes[69] = machine[1]
-        bytes[88] = 0x0b; bytes[89] = 2
+        bytes[88] = 0x0b; bytes[89] = magic
         try Data(bytes).write(to: url)
         return url
     }
@@ -152,6 +152,62 @@ final class BridgeCoreTests: XCTestCase, @unchecked Sendable {
         try Data("not an executable".utf8).write(to: url)
         XCTAssertThrowsError(try ExecutableValidator.validateX64(url))
     }
+    func testExecutableArchitecturesRejectMismatchesARMAndRenamedDLL() throws {
+        XCTAssertEqual(try ExecutableValidator.architecture(of: exe()), .x64)
+        XCTAssertEqual(try ExecutableValidator.architecture(of: exe(machine: [0x4c, 0x01], magic: 1)), .x86)
+        XCTAssertThrowsError(try ExecutableValidator.architecture(of: exe(machine: [0x4c, 0x01])))
+        XCTAssertThrowsError(try ExecutableValidator.architecture(of: exe(magic: 1)))
+        XCTAssertThrowsError(try ExecutableValidator.architecture(of: exe(machine: [0x64, 0xaa])))
+        let url = try exe()
+        var bytes = try Data(contentsOf: url); bytes[87] = 0x20; try bytes.write(to: url)
+        XCTAssertThrowsError(try ExecutableValidator.architecture(of: url))
+    }
+
+    func testLegacyRuntimeDecodingDoesNotAssumeX86Support() throws {
+        let engine = try runtime()
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(engine)) as? [String: Any])
+        json.removeValue(forKey: "supportsWindowsX86")
+        let restored = try JSONDecoder().decode(WineRuntime.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertNil(restored.supportsWindowsX86)
+        XCTAssertTrue(restored.supportsWindowsX64)
+        var configured = restored; configured.supportsWindowsX86 = true
+        XCTAssertEqual(try JSONDecoder().decode(WineRuntime.self, from: JSONEncoder().encode(configured)), configured)
+    }
+
+    func testX86LaunchRequiresApprovalCapabilityAndCompatibleGraphics() async throws {
+        var engine = try runtime()
+        var bottle = try initializedBottle(runtime: engine)
+        let application = ApplicationEntry(name: "32-bit game", executable: try exe(machine: [0x4c, 0x01], magic: 1), bottleID: bottle.id)
+        let executor = MockExecutor(), runtimes = RuntimeManager(host: mac)
+        let service = LaunchService(executor: executor, runtimes: runtimes, bottles: BottleManager(runtimes: runtimes))
+        do { _ = try await service.launch(application, bottle: bottle, runtime: engine, approved: false, output: { _ in }); XCTFail("Unapproved") }
+        catch { XCTAssertEqual(error as? BridgeError, .approvalRequired) }
+        do { _ = try await service.launch(application, bottle: bottle, runtime: engine, approved: true, output: { _ in }); XCTFail("Unconfirmed x86 runtime") }
+        catch { guard case .unsupported = error as? BridgeError else { return XCTFail("Unexpected error: \(error)") } }
+        engine.supportsWindowsX86 = true; bottle.graphics = .dxvkMoltenVK
+        do { _ = try await service.launch(application, bottle: bottle, runtime: engine, approved: true, output: { _ in }); XCTFail("x64-only DXVK") }
+        catch { guard case .unsupported = error as? BridgeError else { return XCTFail("Unexpected error: \(error)") } }
+        let requests = await executor.requests
+        XCTAssertTrue(requests.isEmpty)
+    }
+
+    func testX86LaunchUsesWin64BottleAndPreservesArguments() async throws {
+        var engine = try runtime(); engine.supportsWindowsX86 = true
+        var bottle = try initializedBottle(runtime: engine)
+        let app = ApplicationEntry(name: "32-bit game", executable: try exe(machine: [0x4c, 0x01], magic: 1), bottleID: bottle.id, arguments: ["a b;$(untrusted)"])
+        let executor = MockExecutor(), runtimes = RuntimeManager(host: mac)
+        let service = LaunchService(executor: executor, runtimes: runtimes, bottles: BottleManager(runtimes: runtimes))
+        for graphics in [GraphicsBackend.runtimeDefault, .wineD3DVulkan] {
+            bottle.graphics = graphics
+            _ = try await service.launch(app, bottle: bottle, runtime: engine, approved: true, output: { _ in })
+            let request = await executor.requests.last
+            XCTAssertEqual(request?.arguments, [app.executable.path] + app.arguments)
+            XCTAssertEqual(request?.environment["WINEPREFIX"], bottle.prefix.path)
+            XCTAssertNil(request?.environment["WINEDLLOVERRIDES"])
+            XCTAssertEqual(request?.environment["WINE_D3D_CONFIG"], graphics == .wineD3DVulkan ? "renderer=vulkan" : nil)
+        }
+    }
+
     func testLaunchArgumentsEnvironmentOutputAndNonzeroExit() async throws {
         let engine = try runtime(), bottle = try initializedBottle(runtime: engine)
         let application = ApplicationEntry(name: "Game", executable: try exe(), bottleID: bottle.id,

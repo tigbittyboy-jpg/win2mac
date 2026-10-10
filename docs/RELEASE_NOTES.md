@@ -1,21 +1,11 @@
-This preview adds **Import macOS DXVK x64 Libraries…** and **Restore Original Direct3D DLLs…** for a user-supplied, provider-compatible DirectX 10/11 package. Import requires file-change approval, backs up original DLLs, preserves built-in DXGI, and does not execute software. Launch approval remains separate. Modified or incomplete imports block normal execution/restoration. See [DXVK setup](https://github.com/tigbittyboy-jpg/win2mac/blob/main/docs/DXVK_SETUP.md). No package is downloaded or bundled, publisher authentication is not claimed, and CARL/Windows compatibility has not been tested.
+Bridge now imports and launches 32-bit Windows x86 PE32 EXEs through compatible, user-installed WoW64 runtimes, alongside existing x64 support. ARM Windows executables, mismatched PE headers, and DLLs renamed as EXEs are refused.
 
-Bridge Phase 1 preview for Apple Silicon Macs running macOS 14 or later.
+After updating:
 
-New **Graphics → WineD3D Vulkan (experimental)** selection in Library and Bottles requests the installed runtime's Vulkan renderer via `WINE_D3D_CONFIG=renderer=vulkan`. Settings save per bottle and are shown in launch approval/diagnostics. Choose **Runtime default** to revert. This installs no DLLs or graphics libraries, changes no prefix registry, and does not establish that a particular game will work. See [graphics troubleshooting](https://github.com/tigbittyboy-jpg/win2mac/blob/main/docs/GRAPHICS_TROUBLESHOOTING.md).
+1. In Runtimes, select the provider's Wine command-line engine and enable the separate provider-documented **Windows x86 (32-bit/WoW64) execution on this Mac** declaration, then Save Runtime Settings. Existing runtimes load with this capability unconfirmed. Discovery and version probes never enable it automatically.
+2. Create a separate bottle using **Runtime Default** graphics for the 32-bit game. Prefixes stay win64; do not change CARL's DXVK bottle. Bridge's manual DXVK importer remains x64-only and does not provide 32-bit DirectX 9 translation.
+3. Select the 32-bit game EXE, associate its bottle, and launch with explicit approval. Leave CARL-specific Unity arguments out.
 
-Bottle setup now includes runtime scanning, executable selection, architecture/x64 configuration, and a clear empty state with installation links. Known installed Wine paths are inspected automatically at startup without execution. The Create Bottle action stays disabled until a runtime is selected and its compatibility settings are saved. Bridge still requires a separately installed Wine runtime; see [runtime setup](https://github.com/tigbittyboy-jpg/win2mac/blob/main/docs/RUNTIME_SETUP.md).
+The preview includes synthetic architecture/migration fixtures, mocked x86 process-launch tests, and saved runtime-declaration UI-model coverage. Release publication requires native macOS build/test, signing/architecture verification, and extracted-ZIP visible-window/library startup checks on macOS 14, 15, and 26. No Wine runtime or Windows application is executed by these checks. Binding of Isaac and real x86 compatibility remain hardware-dependent and unverified.
 
-Download **Bridge-macOS-arm64.zip** under Assets, extract it, and move Bridge.app to Applications. You do not need Xcode to use this app. The archive contains Bridge only; select your compatible, user-installed Wine runtime inside the app to run Windows x64 software. A runtime may require newer macOS or Rosetta.
-
-This preview is **ad hoc signed, not Developer ID signed or Apple-notarized**. macOS may block a downloaded preview. Bridge does not remove quarantine or disable Gatekeeper. If macOS offers no approved way to open it, use the source build with Xcode or wait for a notarized release. Managed/public notarized distribution is not available yet.
-
-This update fixes preview.5's startup crash: macOS rejected the embedded BridgeCore framework because of a signing Team ID mismatch. BridgeCore is now linked directly into the app. Hardened runtime and library validation remain enabled.
-
-Managed-prefix ownership checks also handle Foundation's directory URL hints consistently, while rejecting markers for another prefix or bottle.
-
-The release workflow requires macOS XCTest, ARM64 Release compilation, signature/architecture checks, and opening a freshly extracted ZIP copy through LaunchServices. A smoke test requires a visible SwiftUI window and successful library loading before publication. Verification runs on macOS 14 and 26; packaging also runs on macOS 15. The reported macOS 27 system is not available on these hosted runners. These checks do not exercise file panels, real Windows/game compatibility, or a quarantined browser download. No Windows executable or Wine runtime is downloaded or launched by the release workflow.
-
-SHA256SUMS.txt records archive integrity. It is not a publisher signature or notarization certificate. The build source and workflow are public in this repository.
-
-The app provides a persistent library, runtime selection, configurable Wine prefixes, per-operation execution approval, process output, and diagnostics. Wine prefixes are not security sandboxes: approved Windows software runs with your user permissions. 32-bit Windows programs, kernel drivers/anti-cheat, and automatic graphics-backend installation are outside this preview.
+This ARM64 frontend requires macOS 14+. It bundles no Wine or graphics runtime. The application is ad hoc signed with hardened runtime, not Developer ID signed or notarized; do not disable macOS security controls to run it. Keep your installed runtime and existing Bridge data. See docs/X86_SETUP.md for runtime and graphics limitations.

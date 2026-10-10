@@ -1,9 +1,19 @@
 import Foundation
 
+public enum WindowsExecutableArchitecture: String, Sendable {
+    case x86, x64
+}
+
 public enum ExecutableValidator {
     // Parse the DOS header, PE signature, machine, and optional-header magic.
     // No binary execution and no full-file allocation for large installers.
     public static func validateX64(_ url: URL) throws {
+        guard try architecture(of: url) == .x64 else {
+            throw BridgeError.unsupported("This operation requires a Windows x64 executable.")
+        }
+    }
+
+    public static func architecture(of url: URL) throws -> WindowsExecutableArchitecture {
         guard url.isFileURL, url.path.hasPrefix("/"), url.pathExtension.lowercased() == "exe",
               (try url.resourceValues(forKeys: [.isRegularFileKey])).isRegularFile == true else {
             throw BridgeError.invalidExecutable("Select a readable local .exe file.")
@@ -23,9 +33,12 @@ public enum ExecutableValidator {
         guard pe.count == 26, Array(pe[0..<4]) == [0x50, 0x45, 0, 0] else {
             throw BridgeError.invalidExecutable("File has an invalid PE signature.")
         }
-        guard pe[4] == 0x64, pe[5] == 0x86, pe[24] == 0x0b, pe[25] == 0x02 else {
-            throw BridgeError.unsupported("Phase 1 supports x64 PE32+ EXEs only; 32-bit and ARM Windows programs are unsupported.")
+        guard pe[23] & 0x20 == 0 else {
+            throw BridgeError.invalidExecutable("Select an EXE, not a DLL renamed as an EXE.")
         }
+        if pe[4] == 0x64, pe[5] == 0x86, pe[24] == 0x0b, pe[25] == 0x02 { return .x64 }
+        if pe[4] == 0x4c, pe[5] == 0x01, pe[24] == 0x0b, pe[25] == 0x01 { return .x86 }
+        throw BridgeError.unsupported("Select a Windows x86 PE32 or x64 PE32+ EXE. ARM and mismatched PE headers are unsupported.")
     }
 
     public static func validateX64DLL(_ bytes: Data) throws {

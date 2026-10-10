@@ -21,7 +21,7 @@ public struct DiagnosticsService: DiagnosticsCollecting {
     }
     public func report(snapshot: LibrarySnapshot, result: ProcessResult?, recentOutput: String) -> String {
         let paths = snapshot.applications.map(\.executable) + snapshot.bottles.map(\.prefix) + snapshot.runtimes.map(\.executable)
-        let runtimes = snapshot.runtimes.map { "\($0.name): \($0.architecture.rawValue), version: \($0.version ?? "unprobed"), x64 declared: \($0.supportsWindowsX64)" }.joined(separator: "\n")
+        let runtimes = snapshot.runtimes.map { "\($0.name): \($0.architecture.rawValue), version: \($0.version ?? "unprobed"), x64 declared: \($0.supportsWindowsX64), x86/WoW64 declared: \($0.supportsWindowsX86 == true)" }.joined(separator: "\n")
         let exit = result.map { "\($0.exitCode) (signal: \($0.wasSignalled))" } ?? "No completed launch"
         let graphics = snapshot.bottles.map { "\($0.name): \($0.graphics.displayName)" }.joined(separator: "\n")
         let report = """
@@ -29,7 +29,7 @@ public struct DiagnosticsService: DiagnosticsCollecting {
         OS: \(ProcessInfo.processInfo.operatingSystemVersionString)
         macOS: \(host.isMacOS), Apple Silicon: \(host.isAppleSilicon), Rosetta file present: \(host.rosettaInstalled)
         Applications: \(snapshot.applications.count), bottles: \(snapshot.bottles.count)
-        Runtimes (user-reported x64 capability is not a compatibility test):
+        Runtimes (user-reported x64/x86 capabilities is not a compatibility test):
         \(runtimes)
         Configured bottle graphics (requested settings, not verified capabilities):
         \(graphics)

@@ -24,7 +24,15 @@ public actor LaunchService: LaunchServing {
             throw BridgeError.invalidPrefix("Application, bottle, and runtime associations do not match.")
         }
         try runtimes.validate(runtime, forLaunch: true)
-        try ExecutableValidator.validateX64(application.executable)
+        let architecture = try ExecutableValidator.architecture(of: application.executable)
+        if architecture == .x86 {
+            guard runtime.supportsWindowsX86 == true else {
+                throw BridgeError.unsupported("This EXE is 32-bit Windows x86. In Runtimes, confirm and save provider-documented x86/WoW64 support on this Mac. A Wine version probe alone does not establish support.")
+            }
+            guard bottle.graphics != .dxvkMoltenVK else {
+                throw BridgeError.unsupported("Bridge imports x64 DXVK libraries only. Create a separate bottle with Runtime Default graphics for this 32-bit EXE; keep your existing x64 game bottle intact.")
+            }
+        }
         var environment = try graphics.environment(for: bottle.graphics)
         environment["WINEPREFIX"] = try PrefixPolicy.canonical(bottle.prefix).path
         running = true; defer { running = false }

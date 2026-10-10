@@ -158,6 +158,8 @@ struct ContentView: View {
                 }.disabled(!model.canEdit)
                 Text("For wrappers, choose the architecture of the launched Wine engine. Inspection does not prove Windows x64 support.").font(.caption)
                 Toggle("My runtime provider documents Windows x64 execution on this Mac", isOn: $model.runtimeSupportsX64).disabled(!model.canEdit)
+                Toggle("My runtime provider documents Windows x86 (32-bit/WoW64) execution on this Mac", isOn: $model.runtimeSupportsX86).disabled(!model.canEdit)
+                Text("32-bit EXEs require a compatible WoW64 runtime in a win64 bottle. Bridge’s manual DXVK import supports x64 games only.").font(.caption)
                 HStack {
                     Button("Save Runtime Settings") { model.saveRuntimeSettings() }
                     Button("Probe Version…") { model.requestProbe() }

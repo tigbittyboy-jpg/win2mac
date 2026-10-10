@@ -58,10 +58,12 @@ final class BridgeModelTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(model.selectedRuntime?.architecture, .x86_64)
         XCTAssertFalse(model.canCreateBottle)
         model.runtimeSupportsX64 = true
+        model.runtimeSupportsX86 = true
         XCTAssertFalse(model.canCreateBottle, "Unsaved declarations must not permit creation")
         model.saveRuntimeSettings()
         try await waitForOperation(model)
         XCTAssertTrue(model.canCreateBottle)
+        XCTAssertEqual(model.selectedRuntime?.supportsWindowsX86, true)
         model.prefixPath = sample.root.appendingPathComponent("my bottle").path
         model.requestCreateBottle()
         let request = try XCTUnwrap(model.pendingApproval)
@@ -80,6 +82,7 @@ final class BridgeModelTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(reloaded.selectedRuntime?.id, model.selectedRuntime?.id)
         XCTAssertTrue(reloaded.canCreateBottle, "Discovery must preserve saved compatibility settings")
         XCTAssertEqual(reloaded.snapshot.bottles, model.snapshot.bottles)
+        XCTAssertTrue(reloaded.runtimeSupportsX86, "Saved x86 declaration survives discovery/restart")
     }
 
     @MainActor

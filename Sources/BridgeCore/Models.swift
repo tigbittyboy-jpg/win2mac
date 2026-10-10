@@ -23,14 +23,18 @@ public struct WineRuntime: Identifiable, Codable, Equatable, Sendable {
     public var name: String
     public var executable: URL
     public var architecture: RuntimeArchitecture
+    // Optional for backwards-compatible decoding of existing library.json files.
+    // Missing/false means unconfirmed; discovery and version probes never enable it.
+    public var supportsWindowsX86: Bool?
     public var supportsWindowsX64: Bool
     public var version: String?
 
     public init(id: UUID = UUID(), name: String, executable: URL,
                 architecture: RuntimeArchitecture = .unknown, supportsWindowsX64: Bool = false,
-                version: String? = nil) {
+                supportsWindowsX86: Bool = false, version: String? = nil) {
         self.id = id; self.name = name; self.executable = executable
         self.architecture = architecture; self.supportsWindowsX64 = supportsWindowsX64
+        self.supportsWindowsX86 = supportsWindowsX86
         self.version = version
     }
 }

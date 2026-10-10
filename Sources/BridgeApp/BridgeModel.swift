@@ -57,6 +57,7 @@ final class BridgeModel: ObservableObject {
     @Published var selectedRuntimeID: UUID? { didSet { syncRuntimeFields() } }
     @Published var runtimeArchitecture: RuntimeArchitecture = .unknown
     @Published var runtimeSupportsX64 = false
+    @Published var runtimeSupportsX86 = false
     @Published var bottleName = "My Bottle"
     @Published var prefixPath = BridgePaths.bottles.appendingPathComponent("My Bottle").path
     @Published var argumentsText = ""
@@ -115,6 +116,7 @@ final class BridgeModel: ObservableObject {
     private func syncRuntimeFields() {
         runtimeArchitecture = selectedRuntime?.architecture ?? .unknown
         runtimeSupportsX64 = selectedRuntime?.supportsWindowsX64 ?? false
+        runtimeSupportsX86 = selectedRuntime?.supportsWindowsX86 == true
     }
     private func save(_ next: LibrarySnapshot) async throws {
         try await library.save(next); snapshot = next; refreshDiagnostics()
@@ -152,7 +154,7 @@ final class BridgeModel: ObservableObject {
         panel.allowedContentTypes = [UTType(filenameExtension: "exe") ?? .data]
         guard panel.runModal() == .OK, let url = panel.url else { return }
         perform {
-            try ExecutableValidator.validateX64(url)
+            _ = try ExecutableValidator.architecture(of: url)
             let app = ApplicationEntry(name: url.deletingPathExtension().lastPathComponent, executable: url)
             var next = self.snapshot; next.applications.append(app)
             try await self.save(next); self.selectApplication(app.id)
@@ -203,11 +205,12 @@ final class BridgeModel: ObservableObject {
     }
     func saveRuntimeSettings() {
         guard let id = selectedRuntimeID else { return }
-        let architecture = runtimeArchitecture, x64 = runtimeSupportsX64
+        let architecture = runtimeArchitecture, x64 = runtimeSupportsX64, x86 = runtimeSupportsX86
         perform {
             var next = self.snapshot
             if let index = next.runtimes.firstIndex(where: { $0.id == id }) {
                 next.runtimes[index].architecture = architecture; next.runtimes[index].supportsWindowsX64 = x64
+                next.runtimes[index].supportsWindowsX86 = x86
             }
             try await self.save(next)
         }
