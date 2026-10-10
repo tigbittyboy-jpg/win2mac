@@ -15,7 +15,7 @@ A native SwiftUI Windows compatibility launcher for Apple Silicon Macs. **Phase 
 
 ## Download the preview app — no Xcode required
 
-[Download Bridge-macOS-arm64.zip](https://github.com/tigbittyboy-jpg/win2mac/releases/download/v0.1.0-preview.13/Bridge-macOS-arm64.zip), extract it, and replace the old Bridge.app in Applications. The [preview release](https://github.com/tigbittyboy-jpg/win2mac/releases/tag/v0.1.0-preview.13) includes its checksum and release notes. Requires Apple Silicon and macOS 14+; a chosen Wine runtime can require a newer OS. Xcode is only required to build the source.
+[Download Bridge-macOS-arm64.zip](https://github.com/tigbittyboy-jpg/win2mac/releases/download/v0.1.0-preview.14/Bridge-macOS-arm64.zip), extract it, and replace the old Bridge.app in Applications. The [preview release](https://github.com/tigbittyboy-jpg/win2mac/releases/tag/v0.1.0-preview.14) includes its checksum and release notes. Requires Apple Silicon and macOS 14+; a chosen Wine runtime can require a newer OS. Xcode is only required to build the source.
 
 Preview.13 adds approved **Import macOS DXVK x64 Libraries…** and **Restore Original Direct3D DLLs…** controls for a manually supplied DirectX 10/11 backend, with backups, recorded-file checks, and separate launch approval. Application details scroll to keep these controls and Launch reachable. The opt-in WineD3D Vulkan setting remains available before a DXVK import. See [DXVK setup](docs/DXVK_SETUP.md) for the exact provider package/layout and recovery limits. It retains runtime setup directly in Bottles and passive discovery of common installed Wine paths. It retains preview.9's fix for the framework-signing startup crash: BridgeCore is statically linked, with hardened runtime and library validation enabled. Hosted macOS 14, 15, and 26 checks passed the backend/model tests and opened freshly extracted app copies, requiring a visible window and library loading. The user's macOS 27 build and quarantined browser-download behavior remain to be confirmed; no real Wine/Windows compatibility test was run.
 
@@ -100,7 +100,7 @@ This script uses writable external build/cache paths. On other Linux hosts, set 
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for Apple Silicon execution requirements, security boundaries, graphics/license constraints, and sources. See [docs/VALIDATION.md](docs/VALIDATION.md) for actual check results and the hardware test checklist. ARM Windows programs, anti-cheat kernel drivers, arbitrary graphics backend installation, runtime downloads, automatic compatibility profiles, and automatic installer-library discovery are outside Phase 1.
 
-### 32-bit Windows games (preview.14 source)
+### 32-bit Windows games (preview.14)
 
 Bridge can import x86 PE32 EXEs. In **Runtimes**, select a provider-supported Wine engine, confirm **Windows x86 (32-bit/WoW64) execution on this Mac**, then **Save Runtime Settings**. The existing x64 capability/host checks still apply because bottles remain win64. Use a separate bottle with **Runtime Default** graphics for x86 games. Bridge’s DXVK importer remains x64-only; keep CARL’s DXVK bottle intact. Leave game arguments empty unless required by that game—CARL’s Unity flags are not general Wine settings.
 
