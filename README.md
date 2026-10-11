@@ -10,7 +10,7 @@ Supports provider-confirmed Windows x64 and x86/WoW64 execution. ARM64/ARM64EC f
 
 ## Download the preview app — no Xcode required
 
-[Download Bridge-macOS-arm64.zip](https://github.com/tigbittyboy-jpg/win2mac/releases/download/v0.2.0-preview.4/Bridge-macOS-arm64.zip), extract it, and replace the old Bridge.app in Applications. The [preview release](https://github.com/tigbittyboy-jpg/win2mac/releases/tag/v0.2.0-preview.4) includes its checksum and release notes. Requires Apple Silicon and macOS 14+; a chosen Wine runtime can require a newer OS. Xcode is only required to build the source.
+[Download Bridge-macOS-arm64.zip](https://github.com/tigbittyboy-jpg/win2mac/releases/download/v0.2.0-preview.5/Bridge-macOS-arm64.zip), extract it, and replace the old Bridge.app in Applications. The [preview release](https://github.com/tigbittyboy-jpg/win2mac/releases/tag/v0.2.0-preview.5) includes its checksum and release notes. Requires Apple Silicon and macOS 14+; a chosen Wine runtime can require a newer OS. Xcode is only required to build the source.
 
 The 0.2 preview adds the redesigned library, guided engine setup, automatic approved environment preparation, saved launch logs and safe environment repair. Existing application entries and CARL's graphics settings are retained. Advanced DXVK import/restoration is under Settings → Environments; see [DXVK setup](docs/DXVK_SETUP.md). BridgeCore remains statically linked to avoid the earlier framework-signing startup failure. Hosted macOS 14, 15 and 26 build/test and extracted-app startup checks passed. Real Wine/game compatibility and the user's macOS 27 installation still require target-machine testing.
 
