@@ -77,7 +77,9 @@ public struct RuntimeManager: RuntimeManaging {
         guard url.isFileURL, url.path.hasPrefix("/") else {
             throw BridgeError.invalidRuntime("Select an absolute local runtime executable.")
         }
-        let values = try url.resolvingSymlinksInPath().resourceValues(forKeys: [.isRegularFileKey])
+        guard let values = try? url.resolvingSymlinksInPath().resourceValues(forKeys: [.isRegularFileKey]) else {
+            throw BridgeError.invalidRuntime("The selected engine file is missing or unreadable. Choose its current installed executable in Compatibility.")
+        }
         guard values.isRegularFile == true, FileManager.default.isExecutableFile(atPath: url.path) else {
             throw BridgeError.invalidRuntime("Selected runtime is not an executable file.")
         }

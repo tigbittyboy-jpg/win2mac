@@ -11,27 +11,37 @@ public struct LaunchDiagnosis: Equatable, Sendable {
     public static func classify(error: Error? = nil, result: ProcessResult? = nil) -> Self {
         let details = [error?.localizedDescription, result.map { "Exit \($0.exitCode)\($0.wasSignalled ? " (signal)" : "")\n\($0.stderr)\n\($0.stdout)" }].compactMap { $0 }.joined(separator: "\n")
         let text = details.lowercased()
+        let cocoa = error.map { $0 as NSError }
+        let permissionError = cocoa?.domain == NSCocoaErrorDomain && [257, 513].contains(cocoa?.code ?? 0)
+        let prefixError: Bool
+        if case .invalidPrefix = error as? BridgeError { prefixError = true } else { prefixError = false }
+        let runtimeError: Bool
+        if case .invalidRuntime = error as? BridgeError { runtimeError = true } else { runtimeError = false }
+        let unsupportedError: Bool
+        if case .unsupported = error as? BridgeError { unsupportedError = true } else { unsupportedError = false }
         let category: FailureCategory
         let title: String, guidance: String
         if text.contains("rosetta") && !text.contains("does not run") {
             category = .rosetta; title = "This engine needs Rosetta 2"; guidance = "Follow Apple's Rosetta installation instructions, then check Compatibility again."
-        } else if text.contains("permission denied") || text.contains("operation not permitted") || text.contains("sandbox_extension") {
+        } else if permissionError || text.contains("permission denied") || text.contains("operation not permitted") || text.contains("sandbox_extension") {
             category = .permission; title = "macOS blocked access"; guidance = "Check the file's location and macOS permission prompts. Keep macOS security protections enabled."
-        } else if text.contains("feature levels") || text.contains("failed to initialize graphics") || text.contains("failed to create swapchain") || text.contains("vk_error") {
+        } else if text.contains("none of the requested d3d feature levels") || text.contains("failed to initialize graphics") || text.contains("failed to create swapchain") || text.contains("vk_error_initialization_failed") || text.contains("vk_error_device_lost") {
             category = .graphics; title = "The graphics backend could not initialize"; guidance = "Check this engine's supported graphics configuration. Installing Windows DirectX alone does not add Metal translation."
         } else if text.contains("import_dll") && (text.contains("not found") || text.contains("failed")) {
             category = .dependency; title = "A Windows dependency is missing"; guidance = "Technical Details identifies the library. Use the application's official installer or a trusted runtime dependency installer in this environment."
         } else if text.contains("environment override") || text.contains("name=value") {
             category = .environment; title = "A launch setting is invalid"; guidance = "Check environment overrides in Application Settings. Bridge controls prefix, architecture and graphics variables."
-        } else if text.contains("prefix") || text.contains("wineboot") {
+        } else if prefixError && text.contains("win32") {
+            category = .architecture; title = "This environment uses an unsupported architecture"; guidance = "Create a separate win64 environment for this engine. Keep the existing environment and its application data; repair cannot convert it safely."
+        } else if prefixError || text.contains("wineboot failed") || text.contains("prefix is not initialized") {
             category = .prefix; title = "The Windows environment could not start"; guidance = "Repair this Bridge-owned environment from Settings. Existing application data will be retained."
-        } else if text.contains("architecture") || text.contains("wow64") || text.contains("arm64") {
+        } else if (unsupportedError && (text.contains("architecture") || text.contains("wow64") || text.contains("arm64"))) || text.contains("bad exe format") || text.contains("wrong architecture") {
             category = .architecture; title = "This application needs a different engine"; guidance = "Check Compatibility for an engine with documented support for this Windows architecture."
-        } else if text.contains("pe ") || text.contains("executable image") || text.contains("not a windows") {
+        } else if text.contains("pe header") || text.contains("pe section") || text.contains("pe data directory") || text.contains("executable image") || text.contains("not a windows") {
             category = .unsupportedFormat; title = "This executable could not be inspected"; guidance = "Select an intact Windows EXE. Obtain a fresh copy from its publisher if the file is damaged."
         } else if text.contains("no such file") || text.contains("file not found") || text.contains("readable") {
             category = .path; title = "An application file could not be found"; guidance = "Use Change Executable in the application's settings to select its current location."
-        } else if text.contains("engine") || text.contains("runtime") {
+        } else if runtimeError || text.contains("wine: command not found") {
             category = .missingEngine; title = "A compatible engine is not ready"; guidance = "Open Compatibility, select an installed engine, confirm its documented capabilities, and save its settings."
         } else if result?.wasSignalled == true || result.map({ $0.exitCode != 0 }) == true {
             category = .crash; title = "The application stopped unexpectedly"; guidance = "The exit code alone does not identify the cause. Open the saved launch log for evidence; Bridge will not repeatedly restart it."

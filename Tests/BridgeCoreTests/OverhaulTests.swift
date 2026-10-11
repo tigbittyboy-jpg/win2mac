@@ -135,6 +135,9 @@ final class OverhaulTests: XCTestCase, @unchecked Sendable {
     }
     func testFailureClassificationUsesEvidenceNotExitThree() {
         XCTAssertEqual(LaunchDiagnosis.classify(result: .init(exitCode: 3)).category, .crash)
+        XCTAssertEqual(LaunchDiagnosis.classify(result: .init(exitCode: 3, stderr: "[mvk-warn] VK_ERROR_FEATURE_NOT_PRESENT: Metal does not support buffer robustness.\nWine prefix updated\nRuntime initialized; application aborted")).category, .crash)
+        XCTAssertEqual(LaunchDiagnosis.classify(error: BridgeError.invalidPrefix("This environment is win32")).category, .architecture)
+        XCTAssertEqual(LaunchDiagnosis.classify(error: NSError(domain: NSCocoaErrorDomain, code: 257)).category, .permission)
         XCTAssertEqual(LaunchDiagnosis.classify(result: .init(exitCode: 3, stderr: "err:module:import_dll Library MSVCP140.dll not found")).category, .dependency)
         XCTAssertEqual(LaunchDiagnosis.classify(result: .init(exitCode: 1, stderr: "None of the requested D3D feature levels is supported")).category, .graphics)
         XCTAssertEqual(LaunchDiagnosis.classify(error: BridgeError.process("Operation not permitted")).category, .permission)
