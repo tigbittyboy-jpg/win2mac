@@ -53,7 +53,8 @@ final class BridgeCoreTests: XCTestCase, @unchecked Sendable {
     }
     private func exe(machine: [UInt8] = [0x64, 0x86], magic: UInt8 = 2) throws -> URL {
         let url = root.appendingPathComponent("Game $(touch hacked); space.exe")
-        var bytes = [UInt8](repeating: 0, count: 90)
+        var bytes = [UInt8](repeating: 0, count: 512)
+        bytes[70] = 1; bytes[84] = 240; bytes[86] = 2; bytes[149] = 2
         bytes[0] = 0x4d; bytes[1] = 0x5a; bytes[60] = 64
         bytes[64] = 0x50; bytes[65] = 0x45
         bytes[68] = machine[0]; bytes[69] = machine[1]

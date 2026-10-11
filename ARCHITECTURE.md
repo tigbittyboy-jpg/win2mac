@@ -1,4 +1,12 @@
-# Bridge — Phase 1 architecture
+# Bridge integrated architecture
+
+The 0.2 overhaul builds on the services documented below. See [audit](docs/OVERHAUL_AUDIT.md) and [implementation boundaries](docs/OVERHAUL_STATUS.md). New `ExecutableInspector`, `CompatibilityRouter`, `LaunchDiagnosis`, `RunLog`, `LibraryQuery`, and `InstalledApplicationScanner` separate analysis, routing, troubleshooting and library presentation from SwiftUI. Optional JSON fields add history, inspection, favorites, icons and remembered consent without resetting existing stable IDs or associations. Main navigation is Home / Library / Compatibility / Settings. Technical configuration and raw output are opt-in.
+
+Prefix creation still uses a provider-confirmed generic Wine win64 adapter but now waits for readiness. Existing prefixes are checked for win32 metadata before launching; approved repair uses no WINEARCH override and never deletes application files. Each new application gets a dedicated environment. The UI distinguishes process exit from verified application behavior. Remembered execution consent pins direct EXE/engine bytes and launch settings; changing them requests consent again.
+
+The following original service notes remain useful for security, graphics licensing and execution boundaries. Superseded Phase 1 UI/workflow limits are described in OVERHAUL_STATUS.md rather than implied to remain unchanged.
+
+# Bridge architecture
 
 Bridge is an ARM64 native macOS launcher for user-installed Wine-compatible runtimes. It delegates Windows API behavior, CPU translation, and graphics translation to those runtimes. macOS 14 is the frontend minimum; a chosen runtime can require a newer OS. Phase 1 imports x86 PE32 and x64 PE32+ executables and launches them through explicitly configured runtimes, including installers, and stores library entries. It does not automatically discover applications installed by an installer.
 

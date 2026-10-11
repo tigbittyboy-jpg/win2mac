@@ -61,6 +61,19 @@ public struct ApplicationEntry: Identifiable, Codable, Equatable, Sendable {
     public var bottleID: UUID?
     public var arguments: [String]
     public var addedAt: Date
+    // Additive optional fields keep preview libraries readable without resetting IDs.
+    public var executionConsent: String?
+    public var favorite: Bool?
+    public var inspection: ExecutableInfo?
+    public var lastLaunchedAt: Date?
+    public var launchCount: Int?
+    public var lastFailure: String?
+    public var lastExitCode: Int32?
+    public var lastLog: URL?
+    public var customIcon: URL?
+    public var isInstaller: Bool?
+    public var workingDirectory: URL?
+    public var environment: [String: String]?
 
     public init(id: UUID = UUID(), name: String, executable: URL, bottleID: UUID? = nil,
                 arguments: [String] = [], addedAt: Date = Date()) {
@@ -73,6 +86,7 @@ public struct LibrarySnapshot: Codable, Equatable, Sendable {
     public var schemaVersion: Int = 1
     public var applications: [ApplicationEntry] = []
     public var runtimes: [WineRuntime] = []
+    public var repairs: [RepairRecord]?
     public var bottles: [Bottle] = []
     public init() {}
 }

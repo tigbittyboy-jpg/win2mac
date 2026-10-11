@@ -23,6 +23,9 @@ public actor LaunchService: LaunchServing {
         guard application.bottleID == bottle.id, bottle.runtimeID == runtime.id else {
             throw BridgeError.invalidPrefix("Application, bottle, and runtime associations do not match.")
         }
+        guard BackendCapabilities(runtime: runtime).supportsStandardPrefixes else {
+            throw BridgeError.unsupported("This provider requires a dedicated backend adapter; generic Wine commands are unavailable.")
+        }
         try runtimes.validate(runtime, forLaunch: true)
         let architecture = try ExecutableValidator.architecture(of: application.executable)
         if architecture == .x86 {
@@ -33,7 +36,13 @@ public actor LaunchService: LaunchServing {
                 throw BridgeError.unsupported("Bridge imports x64 DXVK libraries only. Create a separate bottle with Runtime Default graphics for this 32-bit EXE; keep your existing x64 game bottle intact.")
             }
         }
-        var environment = try graphics.environment(for: bottle.graphics)
+        var environment = application.environment ?? [:]
+        let reserved = ["WINEPREFIX", "WINEARCH", "WINEDLLOVERRIDES", "WINE_D3D_CONFIG", "DYLD_INSERT_LIBRARIES", "DYLD_LIBRARY_PATH"]
+        guard environment.keys.allSatisfy({ !reserved.contains($0) && $0.range(of: "^[A-Za-z_][A-Za-z0-9_]*$", options: .regularExpression) != nil }),
+              environment.values.allSatisfy({ !$0.contains("\0") }) else {
+            throw BridgeError.unsupported("Invalid environment override. Prefix, architecture, loader and graphics variables are managed by Bridge.")
+        }
+        environment.merge(try graphics.environment(for: bottle.graphics)) { _, managed in managed }
         environment["WINEPREFIX"] = try PrefixPolicy.canonical(bottle.prefix).path
         running = true; defer { running = false }
         try await bottles.acquire(bottle)
@@ -45,7 +54,7 @@ public actor LaunchService: LaunchServing {
             }
             let result = try await executor.run(.init(executable: runtime.executable,
                 arguments: [application.executable.path] + application.arguments, environment: environment,
-                workingDirectory: application.executable.deletingLastPathComponent()), output: output)
+                workingDirectory: application.workingDirectory ?? application.executable.deletingLastPathComponent()), output: output)
             await bottles.release(bottle)
             return result
         } catch {

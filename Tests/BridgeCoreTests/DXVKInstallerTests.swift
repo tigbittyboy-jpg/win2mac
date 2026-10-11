@@ -10,7 +10,8 @@ final class DXVKInstallerTests: XCTestCase, @unchecked Sendable {
     }
     override func tearDownWithError() throws { try FileManager.default.removeItem(at: root) }
     private func pe(dll: Bool = true, x64: Bool = true) -> Data {
-        var bytes = [UInt8](repeating: 0, count: 96)
+        var bytes = [UInt8](repeating: 0, count: 512)
+        bytes[70] = 1; bytes[84] = 240; bytes[86] = 2; bytes[149] = 2
         bytes[0] = 0x4d; bytes[1] = 0x5a; bytes[60] = 64
         bytes[64] = 0x50; bytes[65] = 0x45
         bytes[68] = x64 ? 0x64 : 0x4c; bytes[69] = x64 ? 0x86 : 0x01

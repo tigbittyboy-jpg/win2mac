@@ -1,6 +1,6 @@
 # Bridge project conventions
 
-Phase 1 only: native macOS 14+ SwiftUI frontend, Swift 6 backend, user-installed Wine engines. Do not bundle Wine, D3DMetal, CrossOver, runtime downloads, or game content. Do not implement Windows APIs or CPU emulation.
+The integrated overhaul extends Phase 1: native macOS 14+ SwiftUI frontend, Swift 6 backend, user-installed Wine engines. Preserve existing data, approval boundaries and graphics transactions. Read docs/OVERHAUL_AUDIT.md for the current redesign. Do not bundle Wine, D3DMetal, CrossOver, runtime downloads, or game content. Do not implement Windows APIs or CPU emulation.
 
 - Accept x86 PE32 EXEs only with a separately saved provider-documented x86/WoW64 declaration. Keep win64 prefixes and host/x64 checks. Refuse x86 launches on the x64-only DXVK backend; never infer 32-bit support from a version probe.
 - Use the existing checkout. Cloud tasks are already isolated; do not create worktrees unless asked.

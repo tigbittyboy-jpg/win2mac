@@ -1,17 +1,12 @@
 # Bridge
 
-A native SwiftUI Windows compatibility launcher for Apple Silicon Macs. **Phase 1 prototype**, licensed under MIT. Bridge delegates execution to a compatible, user-installed Wine engine. It does not implement Windows APIs, emulate a CPU, bundle a commercial engine, or promise universal game compatibility.
+A native SwiftUI Windows compatibility launcher for Apple Silicon Macs. **Integrated preview**, licensed under MIT. Bridge delegates execution to a compatible, user-installed Wine engine. It does not implement Windows APIs, emulate a CPU, bundle a commercial engine, or promise universal game compatibility.
 
 ## Implemented
 
-- Sidebar with Library, Runtimes, Bottles, and Diagnostics.
-- Select/import a Windows x64 EXE without executing or copying it.
-- Passive Wine path discovery, manual runtime selection, Mach-O architecture inspection, approved version probes.
-- Configurable prefixes; approved bottle initialization; association with existing initialized prefixes; ownership-checked deletion.
-- Persistent application, argument, runtime, and bottle records in versioned JSON.
-- Approved launches through Foundation.Process, separate stdout/stderr, exit status, launch errors, cancellation, and bounded capture.
-- Protocols and injected services; XCTest mocked execution and trusted system-process integration tests.
-- Runtime-default settings, optional WineD3D Vulkan configuration, and approved manual import/restoration of macOS DXVK x64 DirectX 10/11 libraries; diagnostic path redaction.
+Home, a searchable grid/list library, Compatibility setup, and advanced Settings. Bridge inspects Windows PE architecture, selects a configured compatible Wine engine and prepares a dedicated environment with your approval. Favorites, custom names/icons, launch settings/history and existing bottles survive updates. Detailed logs and evidence-based errors help troubleshooting; owned environments can be repaired without deleting installed files.
+
+Supports provider-confirmed Windows x64 and x86/WoW64 execution. ARM64/ARM64EC files are detected but require unsupported dedicated engines. Wine, Rosetta and graphics translation come from your installed provider. See [overhaul features and limitations](docs/OVERHAUL_STATUS.md).
 
 ## Download the preview app — no Xcode required
 
