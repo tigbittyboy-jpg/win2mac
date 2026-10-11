@@ -197,6 +197,7 @@ final class BridgeModelTests: XCTestCase, @unchecked Sendable {
         let store = ApplicationLibrary(file: sample.root.appendingPathComponent("library.json")); try await store.save(snapshot)
         let model = BridgeModel(library: store, runtimes: runtimes,
             bottles: BottleManager(executor: executor, runtimes: runtimes),
+            launcher: LaunchService(executor: executor, runtimes: runtimes, bottles: BottleManager(runtimes: runtimes)),
             environmentsDirectory: sample.root.appendingPathComponent("Environments"), logsDirectory: sample.root.appendingPathComponent("Logs"))
         await model.load()
         XCTAssertEqual(model.section, .home)

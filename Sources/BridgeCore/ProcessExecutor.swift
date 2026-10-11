@@ -17,13 +17,21 @@ public struct ProcessRequest: Sendable, Equatable {
     public let executable: URL
     public let arguments: [String]
     public let environment: [String: String]
+    public let removingInheritedEnvironment: [String]
     public let workingDirectory: URL?
     public let timeout: TimeInterval?
     public init(executable: URL, arguments: [String], environment: [String: String] = [:],
-                workingDirectory: URL? = nil, timeout: TimeInterval? = nil) {
+                workingDirectory: URL? = nil, timeout: TimeInterval? = nil, removingInheritedEnvironment: [String] = []) {
         self.executable = executable; self.arguments = arguments; self.environment = environment
         self.workingDirectory = workingDirectory; self.timeout = timeout
+        self.removingInheritedEnvironment = removingInheritedEnvironment
     }
+    public func resolvedEnvironment(inheriting base: [String: String]) -> [String: String] {
+        var clean = base
+        for key in removingInheritedEnvironment { clean.removeValue(forKey: key) }
+        return clean.merging(environment) { _, configured in configured }
+    }
+
 }
 
 public struct ProcessResult: Sendable, Equatable {
@@ -148,7 +156,7 @@ public struct FoundationProcessExecutor: ProcessExecuting {
                     child.executableURL = request.executable
                     child.arguments = request.arguments
                     // Preserve supported user-installed runtime environments; never log values.
-                    child.environment = ProcessInfo.processInfo.environment.merging(request.environment) { _, new in new }
+                    child.environment = request.resolvedEnvironment(inheriting: ProcessInfo.processInfo.environment)
                     child.currentDirectoryURL = request.workingDirectory
                     child.standardInput = FileHandle.nullDevice
                     child.standardOutput = stdout; child.standardError = stderr

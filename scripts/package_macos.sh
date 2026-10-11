@@ -55,5 +55,8 @@ bridge_extracted="$(mktemp -d "$bridge_output/extracted.XXXXXX")"
 ditto -x -k "$bridge_output/Bridge-macOS-arm64.zip" "$bridge_extracted"
 codesign --verify --deep --strict --verbose=2 "$bridge_extracted/Bridge.app"
 python3 scripts/verify_macos_launch.py "$bridge_extracted/Bridge.app" "$bridge_extracted/startup.json"
+if [[ -f "$bridge_extracted/Bridge-interface.png" ]]; then
+    cp "$bridge_extracted/Bridge-interface.png" "$bridge_output/Bridge-interface.png"
+fi
 (cd "$bridge_output" && shasum -a 256 Bridge-macOS-arm64.zip > SHA256SUMS.txt)
 printf '%s\n' "Packaged $bridge_output/Bridge-macOS-arm64.zip"

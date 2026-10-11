@@ -42,7 +42,7 @@ struct ExecutionApproval: Identifiable {
         case .createBottle(let name, let prefix, let runtime):
             return "Initialize bottle ‘\(name)’ using:\n\(runtime.executable.path)\nArguments: wineboot, -u\nPrefix: \(prefix.path)"
         case .prepare(let app, let runtime, let prefix):
-            return "Prepare and launch ‘\(app.name)’:\nApplication: \(app.executable.path)\nEngine: \(runtime.executable.path)\nEnvironment: \(prefix.path)\nBridge may initialize this new, dedicated win64 environment using wineboot -u, then run the application. Existing game environments will not be changed."
+            return "Prepare and launch ‘\(app.name)’:\nApplication: \(app.executable.path)\nEngine: \(runtime.executable.path)\nEnvironment: \(prefix.path)\nBridge may initialize this dedicated win64 environment, or perform one wineboot update if it is incomplete and Bridge-owned, then run the application. Data is retained; other game environments will not be changed."
         case .repair(let bottle, let runtime):
             return "Update the Bridge-owned environment ‘\(bottle.name)’ using wineboot -u:\n\(runtime.executable.path)\n\(bottle.prefix.path)\nExisting data is retained. Close all Wine applications using this environment first. This verifies environment structure, not game compatibility."
         case .launch(let app, let bottle, let runtime):
@@ -147,7 +147,7 @@ final class BridgeModel: ObservableObject {
     }
     private func perform(_ operation: @escaping @MainActor () async throws -> Void) {
         guard canEdit else { return }
-        busy = true
+        busy = true; diagnosis = nil; errorMessage = nil
         operationTask = Task {
             defer { if let activeLog { try? activeLog.finish(); self.activeLog = nil }; busy = false; operationTask = nil; if stage != "Finished" { stage = "Ready" }; refreshDiagnostics() }
             do {
@@ -423,6 +423,22 @@ final class BridgeModel: ObservableObject {
             return hash.finalize().map { String(format: "%02x", $0) }.joined()
         }.value
     }
+    private func repairOwnedEnvironment(_ bottle: Bottle, runtime: WineRuntime) async throws -> Bottle {
+        stage = "Repairing Windows environment"
+        var next = snapshot
+        next.repairs = Array(((next.repairs ?? []) + [RepairRecord(bottleID: bottle.id, outcome: "Attempting one approved environment update")]).suffix(100))
+        try await save(next)
+        do {
+            let repaired = try await bottles.repair(bottle, runtime: runtime, approved: true, output: outputHandler)
+            next = snapshot
+            next.repairs = Array(((next.repairs ?? []) + [RepairRecord(bottleID: bottle.id, outcome: "Environment structure verified; application compatibility unverified")]).suffix(100))
+            try await save(next); return repaired
+        } catch {
+            next = snapshot
+            next.repairs = Array(((next.repairs ?? []) + [RepairRecord(bottleID: bottle.id, outcome: "Failed: " + error.localizedDescription)]).suffix(100))
+            try await save(next); throw error
+        }
+    }
     func requestRepair(_ bottle: Bottle) {
         guard canEdit, let runtime = snapshot.runtimes.first(where: { $0.id == bottle.runtimeID }) else { return }
         pendingApproval = ExecutionApproval(operation: .repair(bottle, runtime))
@@ -550,16 +566,7 @@ final class BridgeModel: ObservableObject {
                 try await self.save(next)
                 self.appendConsole(.init(stream: .stdout, text: "\nBottle initialized. Select it in your application's library entry.\n"))
             case .repair(let bottle, let runtime):
-                self.stage = "Repairing Windows environment"
-                var next = self.snapshot
-                do {
-                    _ = try await self.bottles.repair(bottle, runtime: runtime, approved: true, output: self.outputHandler)
-                    next.repairs = Array(((next.repairs ?? []) + [RepairRecord(bottleID: bottle.id, outcome: "Environment structure verified; application compatibility unverified")]).suffix(100))
-                    try await self.save(next)
-                } catch {
-                    next.repairs = Array(((next.repairs ?? []) + [RepairRecord(bottleID: bottle.id, outcome: "Failed: " + error.localizedDescription)]).suffix(100))
-                    try await self.save(next); throw error
-                }
+                _ = try await self.repairOwnedEnvironment(bottle, runtime: runtime)
             case .prepare(var app, let runtime, let prefix):
                 self.stage = "Preparing Windows environment"
                 let info = try ExecutableInspector.inspect(app.executable)
@@ -568,7 +575,7 @@ final class BridgeModel: ObservableObject {
                 if FileManager.default.fileExists(atPath: prefix.path) {
                     let owner = try PrefixPolicy.ownedBottle(at: prefix, runtimeID: runtime.id)
                     if (try? PrefixPolicy.validateWin64(prefix)) != nil { bottle = owner }
-                    else { bottle = try await self.bottles.repair(owner, runtime: runtime, approved: true, output: self.outputHandler) }
+                    else { bottle = try await self.repairOwnedEnvironment(owner, runtime: runtime) }
                 } else {
                     bottle = try await self.bottles.create(name: app.name, prefix: prefix, runtime: runtime, approved: true, output: self.outputHandler)
                 }

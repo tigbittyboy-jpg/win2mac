@@ -54,7 +54,8 @@ public actor LaunchService: LaunchServing {
             }
             let result = try await executor.run(.init(executable: runtime.executable,
                 arguments: [application.executable.path] + application.arguments, environment: environment,
-                workingDirectory: application.workingDirectory ?? application.executable.deletingLastPathComponent()), output: output)
+                workingDirectory: application.workingDirectory ?? application.executable.deletingLastPathComponent(),
+                removingInheritedEnvironment: ["WINEARCH", "WINEPREFIX"]), output: output)
             await bottles.release(bottle)
             return result
         } catch {

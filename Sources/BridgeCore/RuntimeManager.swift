@@ -62,7 +62,7 @@ public struct RuntimeManager: RuntimeManaging {
         guard approved else { throw BridgeError.approvalRequired }
         try validate(runtime, forLaunch: false)
         let result = try await executor.run(.init(executable: runtime.executable, arguments: ["--version"],
-            workingDirectory: runtime.executable.deletingLastPathComponent(), timeout: 15), output: output)
+            workingDirectory: runtime.executable.deletingLastPathComponent(), timeout: 15, removingInheritedEnvironment: ["WINEARCH", "WINEPREFIX"]), output: output)
         let version = (result.stdout + "\n" + result.stderr).components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first { $0.range(of: #"(?i)^wine(?:-|\s+)(?:\d+(?:\.\d+)*|crossover\b)"#, options: .regularExpression) != nil }

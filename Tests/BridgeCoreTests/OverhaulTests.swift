@@ -167,7 +167,15 @@ final class OverhaulTests: XCTestCase, @unchecked Sendable {
         let exe = directory.appendingPathComponent("app.exe"); try bytes().write(to: exe)
         try FileManager.default.createSymbolicLink(at: directory.appendingPathComponent("escape.exe"), withDestinationURL: image(bytes()))
         let targets = try InstalledApplicationScanner.scan(prefix: prefix)
-        XCTAssertEqual(targets.map(\.executable), [exe])
+        XCTAssertEqual(targets.map { $0.executable.resolvingSymlinksInPath() }, [exe.resolvingSymlinksInPath()])
         XCTAssertTrue(try InstalledApplicationScanner.scan(prefix: prefix, excluding: [exe]).isEmpty)
     }
+    func testInheritedWineArchitectureCannotLeakIntoLaunchOrRepair() {
+        let request = ProcessRequest(executable: URL(fileURLWithPath: "/usr/bin/true"), arguments: [],
+            environment: ["WINEPREFIX": "/safe/environment"], removingInheritedEnvironment: ["WINEPREFIX", "WINEARCH"])
+        let merged = request.resolvedEnvironment(inheriting: ["WINEPREFIX": "/wrong", "WINEARCH": "win32", "PROVIDER_SETTING": "keep"])
+        XCTAssertEqual(merged["WINEPREFIX"], "/safe/environment"); XCTAssertNil(merged["WINEARCH"])
+        XCTAssertEqual(merged["PROVIDER_SETTING"], "keep")
+    }
+
 }

@@ -81,7 +81,7 @@ public actor BottleManager: BottleManaging {
     private static let marker = ".bridge-bottle.json"
     public init(executor: any ProcessExecuting = FoundationProcessExecutor(), runtimes: any RuntimeManaging = RuntimeManager(), readinessAttempts: Int = 120, readinessInterval: Duration = .milliseconds(250)) {
         self.executor = executor; self.runtimes = runtimes
-        self.readinessAttempts = max(1, min(readinessAttempts, 120)); self.readinessInterval = readinessInterval
+        self.readinessAttempts = max(1, min(readinessAttempts, 120)); self.readinessInterval = min(max(readinessInterval, .zero), .milliseconds(250))
     }
     public func create(name: String, prefix: URL, runtime: WineRuntime, approved: Bool,
                        output: @escaping OutputHandler) async throws -> Bottle {
@@ -102,7 +102,7 @@ public actor BottleManager: BottleManaging {
         do {
             let result = try await executor.run(.init(executable: runtime.executable,
                 arguments: ["wineboot", "-u"], environment: ["WINEPREFIX": path.path, "WINEARCH": "win64"],
-                workingDirectory: path, timeout: 120), output: output)
+                workingDirectory: path, timeout: 120, removingInheritedEnvironment: ["WINEARCH", "WINEPREFIX"]), output: output)
             guard result.exitCode == 0, !result.wasSignalled else {
                 throw BridgeError.invalidPrefix("wineboot failed (exit \(result.exitCode)). Check process output.")
             }
@@ -143,7 +143,7 @@ public actor BottleManager: BottleManaging {
         active.insert(path.path); defer { active.remove(path.path) }
         // Exactly one approved update, never change an existing prefix's architecture.
         let result = try await executor.run(.init(executable: runtime.executable, arguments: ["wineboot", "-u"],
-            environment: ["WINEPREFIX": path.path], workingDirectory: path, timeout: 120), output: output)
+            environment: ["WINEPREFIX": path.path], workingDirectory: path, timeout: 120, removingInheritedEnvironment: ["WINEARCH", "WINEPREFIX"]), output: output)
         guard result.exitCode == 0, !result.wasSignalled else { throw BridgeError.invalidPrefix("Environment repair failed (exit \(result.exitCode)); data was preserved.") }
         try await waitUntilInitialized(path)
         return bottle

@@ -21,6 +21,15 @@ enum StartupProbe {
             if let window = NSApplication.shared.windows.first(where: {
                 $0.isVisible && $0.contentView != nil && $0.frame.width >= 900 && $0.frame.height >= 650
             }) {
+                // Render a fresh, empty-library interface snapshot for release inspection.
+                // Capture the view itself; no screen-recording permission or user data.
+                try? await Task.sleep(for: .milliseconds(250))
+                if let content = window.contentView, let bitmap = content.bitmapImageRepForCachingDisplay(in: content.bounds) {
+                    content.cacheDisplay(in: content.bounds, to: bitmap)
+                    if let png = bitmap.representation(using: .png, properties: [:]) {
+                        try? png.write(to: report.deletingLastPathComponent().appendingPathComponent("Bridge-interface.png"), options: .atomic)
+                    }
+                }
                 finish(report: report, success: model.loaded && model.errorMessage == nil,
                        windowVisible: window.isVisible)
                 return
