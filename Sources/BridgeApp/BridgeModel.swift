@@ -116,7 +116,7 @@ final class BridgeModel: ObservableObject {
     var canEdit: Bool { loaded && !busy }
     var selectedRuntimeConfigured: Bool {
         guard let runtime = selectedRuntime else { return false }
-        return runtime.architecture != .unknown && runtime.supportsWindowsX64
+        return BackendCapabilities(runtime: runtime).supportsStandardPrefixes && (try? runtimes.validate(runtime, forLaunch: true)) != nil
     }
     var canCreateBottle: Bool { canEdit && selectedRuntimeConfigured }
     func load() async {
@@ -366,7 +366,8 @@ final class BridgeModel: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         perform {
             try PrefixPolicy.validateInitialized(url)
-            let bottle = (try? PrefixPolicy.ownedBottle(at: url, runtimeID: runtime.id)) ?? Bottle(name: url.lastPathComponent, prefix: try PrefixPolicy.canonical(url), runtimeID: runtime.id)
+            let canonical = try PrefixPolicy.canonical(url)
+            let bottle = (try? PrefixPolicy.ownedBottle(at: url, runtimeID: runtime.id)) ?? Bottle(name: url.lastPathComponent, prefix: canonical, runtimeID: runtime.id)
             var next = self.snapshot; next.bottles.append(bottle)
             try await self.save(next)
         }

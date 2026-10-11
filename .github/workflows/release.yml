@@ -42,7 +42,7 @@ jobs:
         run: |
           if [[ -f "$RUNNER_TEMP/bridge-package.log" ]]; then
             bridge_tag="bridge-packaging-diagnostics-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-${{ matrix.os }}"
-            tail -n 100 "$RUNNER_TEMP/bridge-package.log" > "$RUNNER_TEMP/bridge-diagnostics.txt"
+            python3 scripts/ci_diagnostics.py "$RUNNER_TEMP/bridge-package.log" > "$RUNNER_TEMP/bridge-diagnostics.txt"
             git -c user.name='github-actions[bot]' \
               -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
               tag -a "$bridge_tag" -F "$RUNNER_TEMP/bridge-diagnostics.txt"
@@ -80,7 +80,7 @@ jobs:
         run: |
           if [[ -f "$RUNNER_TEMP/bridge-package.log" ]]; then
             bridge_diagnostic_tag="bridge-packaging-diagnostics-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-            tail -n 100 "$RUNNER_TEMP/bridge-package.log" > "$RUNNER_TEMP/bridge-package-diagnostics.txt"
+            python3 scripts/ci_diagnostics.py "$RUNNER_TEMP/bridge-package.log" > "$RUNNER_TEMP/bridge-package-diagnostics.txt"
             git -c user.name='github-actions[bot]' \
               -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
               tag -a "$bridge_diagnostic_tag" -F "$RUNNER_TEMP/bridge-package-diagnostics.txt"

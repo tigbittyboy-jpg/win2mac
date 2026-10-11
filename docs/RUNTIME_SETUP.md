@@ -12,11 +12,11 @@ The maintainer documents 32/64-bit Windows execution, but Bridge Phase 1 accepts
 
 ## Add the installed runtime to Bridge
 
-1. Open **Bottles** and choose **Scan Installed Runtimes**. Bridge also scans known paths at startup; this reads executable headers and never runs a runtime.
+1. Open **Compatibility** and choose **Scan Installed Runtimes**. Bridge also scans known paths at startup; this reads executable headers and never runs a runtime.
 2. If the installed runtime is not found, choose **Choose Wine Executable…**. For the provider's standard stable app, select `/Applications/Wine Stable.app/Contents/Resources/wine/bin/wine`. The file chooser allows browsing inside app bundles. Do not select a Windows EXE or the outer `.app` bundle as the runtime executable.
 3. Check the provider's engine architecture. The referenced Intel builds use **x86_64**. Only enable the Windows x64 support checkbox if the provider documents that execution path, then choose **Save Runtime Settings**. Bridge preserves saved declarations during later scans. A path being detected does not establish x64 compatibility.
 4. Optionally choose **Probe Version…** and approve the displayed command. This executes `--version` only and does not certify game compatibility.
-5. Enter a bottle name and a new prefix directory. **Create Bottle…** becomes available after runtime configuration is saved; it presents an execution approval before running `wineboot`. No runtime is executed just by selecting it or opening Bottles.
+5. New apps automatically prepare a dedicated environment after Play and approval. For manual configuration, open Settings → Environments. Enter a bottle name and a new prefix directory. **Create Bottle…** becomes available after runtime configuration is saved; it presents an execution approval before running `wineboot`. No runtime is executed just by selecting it or opening Compatibility.
 
 Existing Wine prefixes can be associated with their compatible runtime. CrossOver and other engines may require provider-specific environment setup or adapters; selecting an arbitrary private binary from an app bundle is not a supported integration claim.
 
