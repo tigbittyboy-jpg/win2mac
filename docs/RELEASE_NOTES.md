@@ -1,3 +1,5 @@
+Preview.5 fixes an EXE import-table validation regression: import-directory sizes that omit the final null descriptor are accepted with one additional bounded, mapped read. This addresses a possible cause of CARL’s new pre-launch inspection failure; the actual user EXE remains to be retested. Isaac exit 3 is still unresolved; this release does not claim to fix its crash.
+
 Bridge 0.2 introduces Home, a searchable grid/list Library, Compatibility setup and advanced Settings. Import or drop a Windows EXE, then press Play: Bridge inspects its architecture, selects a configured compatible Wine engine and prepares a separate environment after approval.
 
 Favorites, custom names/icons, launch settings, launch history and local diagnostic logs persist. Existing CARL bottles and DXVK settings are preserved. Owned environments can be repaired without deleting application files. Exit codes are explained using captured evidence; process startup is never labeled verified game compatibility. Configured apps can explicitly remember approval bound to unchanged EXE/engine bytes and launch settings.

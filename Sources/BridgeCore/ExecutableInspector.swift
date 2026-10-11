@@ -95,7 +95,10 @@ public enum ExecutableInspector {
         if importRVA != 0 {
             guard importSize >= 20 else { throw BridgeError.invalidExecutable("Invalid import directory.") }
             var terminated = false
-            for i in 0..<min(Int(importSize / 20), 512) {
+            // Some linkers omit the trailing null descriptor from the advertised
+            // size. Read one extra descriptor, still requiring mapped file bytes
+            // and the same hard limit; never scan arbitrary trailing data.
+            for i in 0..<min(Int(importSize / 20) + 1, 512) {
                 let address = UInt64(importRVA) + UInt64(i * 20)
                 guard address <= UInt64(UInt32.max) else { throw BridgeError.invalidExecutable("Import address overflow.") }
                 let descriptor = try read(try map(UInt32(address), 20), 20)

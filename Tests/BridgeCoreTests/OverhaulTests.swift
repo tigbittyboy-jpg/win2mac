@@ -79,6 +79,17 @@ final class OverhaulTests: XCTestCase, @unchecked Sendable {
         let misleading = root.appendingPathComponent("setup.exe"); try bytes().write(to: misleading)
         XCTAssertEqual(try ExecutableInspector.inspect(misleading).kind, .application)
     }
+    func testImportSizeMayExcludeTerminatingDescriptor() throws {
+        for plus in [true, false] {
+            var data = bytes(machine: plus ? 0x8664 : 0x14c, plus: plus, msi: true)
+            let sizeOffset = (plus ? 200 : 184) + 12
+            data[sizeOffset] = 20 // One import, with its null terminator outside Size.
+            XCTAssertEqual(try ExecutableInspector.inspect(image(data)).imports, ["msi.dll"])
+            // A second non-null descriptor cannot trigger an unbounded scan.
+            data[660 + 12] = 0xc0; data[660 + 13] = 0x10
+            XCTAssertThrowsError(try ExecutableInspector.inspect(image(data)))
+        }
+    }
     func testRouterSelectsConfirmedArchitectureAndPreferredEngine() throws {
         let manager = RuntimeManager(host: host), router = CompatibilityRouter(runtimes: manager)
         var unsupported = try engine("unconfirmed"); unsupported.supportsWindowsX86 = false
