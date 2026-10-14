@@ -10,9 +10,12 @@ public struct BackendCapabilities: Sendable {
     public let supportsStandardPrefixes: Bool
     public init(runtime: WineRuntime) {
         let path = runtime.executable.path.lowercased()
-        family = path.contains("crossover") ? .crossover :
+        let detected: BackendFamily = path.contains("crossover") ? .crossover :
             (path.contains("game porting toolkit") || path.contains("game-porting-toolkit")) ? .gamePortingToolkit : .wine
-        supportsStandardPrefixes = family == .wine
+        family = runtime.provider.map {
+            switch $0 { case .genericWine: .wine; case .crossOver: .crossover; case .gamePortingToolkit: .gamePortingToolkit }
+        } ?? detected
+        supportsStandardPrefixes = family == .wine && detected == .wine
         architectures = supportsStandardPrefixes ? (runtime.supportsWindowsX64 ? [.x64] : []) +
             (runtime.supportsWindowsX86 == true ? [.x86] : []) : []
         hostArchitecture = runtime.architecture

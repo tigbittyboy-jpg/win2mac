@@ -16,7 +16,7 @@ public struct ExecutableInfo: Codable, Equatable, Sendable {
 
 /// Bounded passive PE reader. Formats and machine types are separate; no image is loaded.
 public enum ExecutableInspector {
-    public static func inspect(_ url: URL) throws -> ExecutableInfo {
+    public static func inspect(_ url: URL, requiringDLL: Bool = false) throws -> ExecutableInfo {
         guard url.isFileURL, url.path.hasPrefix("/"),
               try url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
             throw BridgeError.invalidExecutable("Choose a readable Windows executable file.")
@@ -40,7 +40,7 @@ public enum ExecutableInspector {
         let peOffset = UInt64(u32(dos, 60))
         guard peOffset >= 64, peOffset <= 16 * 1024 * 1024 else { throw BridgeError.invalidExecutable("Invalid PE header location.") }
         let coff = try read(peOffset, 24)
-        guard Array(coff[0..<4]) == [0x50, 0x45, 0, 0], u16(coff, 22) & 0x2000 == 0,
+        guard Array(coff[0..<4]) == [0x50, 0x45, 0, 0], (requiringDLL ? u16(coff, 22) & 0x2000 != 0 : u16(coff, 22) & 0x2000 == 0),
               u16(coff, 22) & 2 != 0 else { throw BridgeError.invalidExecutable("Select an executable image, not a DLL or invalid PE file.") }
         let machineCode = u16(coff, 4), sections = Int(u16(coff, 6)), optionalSize = Int(u16(coff, 20))
         guard sections > 0, sections <= 96, optionalSize >= 96, optionalSize <= 4096 else {

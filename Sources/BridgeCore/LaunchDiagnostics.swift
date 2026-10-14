@@ -1,9 +1,12 @@
 import Foundation
 
 public enum FailureCategory: String, Codable, Sendable {
-    case architecture, missingEngine, rosetta, dependency, path, environment, prefix, graphics, permission, crash, unsupportedFormat, unknown
+    case architecture, missingEngine, rosetta, dependency, path, environment, prefix, graphics, permission, crash, unsupportedFormat, steamAuthentication, drmAntiCheat, runtimeCompatibility, unknown
 }
-public struct LaunchDiagnosis: Equatable, Sendable {
+public enum DiagnosticConfidence: String, Codable, Sendable { case confirmed, probable, unknown }
+public struct LaunchDiagnosis: Codable, Equatable, Sendable {
+    public var confidence: DiagnosticConfidence = .unknown
+    public var evidence: [String] = []
     public let category: FailureCategory
     public let title: String
     public let guidance: String
@@ -11,6 +14,7 @@ public struct LaunchDiagnosis: Equatable, Sendable {
     public static func classify(error: Error? = nil, result: ProcessResult? = nil) -> Self {
         let details = [error?.localizedDescription, result.map { "Exit \($0.exitCode)\($0.wasSignalled ? " (signal)" : "")\n\($0.stderr)\n\($0.stdout)" }].compactMap { $0 }.joined(separator: "\n")
         let text = details.lowercased()
+        let lines = text.components(separatedBy: .newlines)
         let cocoa = error.map { $0 as NSError }
         let permissionError = cocoa?.domain == NSCocoaErrorDomain && [257, 513].contains(cocoa?.code ?? 0)
         let prefixError: Bool
@@ -27,8 +31,14 @@ public struct LaunchDiagnosis: Equatable, Sendable {
             category = .permission; title = "macOS blocked access"; guidance = "Check the file's location and macOS permission prompts. Keep macOS security protections enabled."
         } else if text.contains("none of the requested d3d feature levels") || text.contains("failed to initialize graphics") || text.contains("failed to create swapchain") || text.contains("vk_error_initialization_failed") || text.contains("vk_error_device_lost") {
             category = .graphics; title = "The graphics backend could not initialize"; guidance = "Check this engine's supported graphics configuration. Installing Windows DirectX alone does not add Metal translation."
-        } else if text.contains("import_dll") && (text.contains("not found") || text.contains("failed")) {
+        } else if lines.contains(where: { $0.contains("import_dll") && ($0.contains("not found") || $0.contains("failed")) }) {
             category = .dependency; title = "A Windows dependency is missing"; guidance = "Technical Details identifies the library. Use the application's official installer or a trusted runtime dependency installer in this environment."
+        } else if text.contains("failed to log on to steam") || text.contains("steam login failed") || text.contains("steam authentication failed") {
+            category = .steamAuthentication; title = "Steam authentication failed"; guidance = "Open Windows Steam in this environment and sign in normally. Inspect its log and connection; Win2Mac cannot bypass authentication."
+        } else if text.contains("anti-cheat initialization failed") || text.contains("unsupported anti-cheat") || text.contains("drm initialization failed") {
+            category = .drmAntiCheat; title = "A protection component reported failure"; guidance = "Check the publisher's supported platforms and protection requirements. This log suggests a protection failure, not proof that all versions are incompatible. No bypass is offered."
+        } else if text.contains("recorded engine executable changed") || text.contains("provider requires a dedicated backend adapter") {
+            category = .runtimeCompatibility; title = "This engine configuration needs review"; guidance = "Keep the known-working runtime and environment. Review the provider's supported adapter or register the changed runtime separately."
         } else if text.contains("environment override") || text.contains("name=value") {
             category = .environment; title = "A launch setting is invalid"; guidance = "Check environment overrides in Application Settings. Bridge controls prefix, architecture and graphics variables."
         } else if prefixError && text.contains("win32") {
@@ -48,7 +58,13 @@ public struct LaunchDiagnosis: Equatable, Sendable {
         } else {
             category = .unknown; title = "Bridge could not complete this operation"; guidance = "Open Technical Details or export diagnostics. No application data was automatically deleted."
         }
-        return .init(category: category, title: title, guidance: guidance, technicalDetails: details)
+        let typed = error as? BridgeError
+        let directCheck: Bool
+        if case .process = typed { directCheck = false } else { directCheck = typed != nil }
+        let confidence: DiagnosticConfidence = category == .unknown || category == .crash ? .unknown : directCheck ? .confirmed : .probable
+        let evidence = details.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        return .init(confidence: confidence, evidence: Array(evidence.prefix(12)).map { String($0.prefix(1024)) },
+                     category: category, title: title, guidance: guidance, technicalDetails: details)
     }
 }
 

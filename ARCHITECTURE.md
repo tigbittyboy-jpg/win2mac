@@ -1,3 +1,7 @@
+# Win2Mac 0.3 compatibility architecture
+
+The current rebuild architecture and evidence boundaries are documented in [REBUILD_STATUS.md](docs/REBUILD_STATUS.md), following the [pre-refactor audit](docs/REBUILD_AUDIT.md). Core execution now uses a shared environment policy, optional recorded runtime identity, per-app graphics overrides, scoped installer/Steam services, offline recovery checkpoints, and structured persisted launch/compatibility records. The historical 0.2/Phase 1 notes below remain useful context but do not enumerate the new services.
+
 # Bridge integrated architecture
 
 The 0.2 overhaul builds on the services documented below. See [audit](docs/OVERHAUL_AUDIT.md) and [implementation boundaries](docs/OVERHAUL_STATUS.md). New `ExecutableInspector`, `CompatibilityRouter`, `LaunchDiagnosis`, `RunLog`, `LibraryQuery`, and `InstalledApplicationScanner` separate analysis, routing, troubleshooting and library presentation from SwiftUI. Optional JSON fields add history, inspection, favorites, icons and remembered consent without resetting existing stable IDs or associations. Main navigation is Home / Library / Compatibility / Settings. Technical configuration and raw output are opt-in.

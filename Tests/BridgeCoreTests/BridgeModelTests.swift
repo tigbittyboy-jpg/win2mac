@@ -246,5 +246,51 @@ final class BridgeModelTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(model.snapshot.bottles.count, 1)
     }
 
+    @MainActor
+    func testGameGraphicsOverridePreservesOtherAppsAndActualLaunchHistory() async throws {
+        let sample = try fixture(); defer { try? FileManager.default.removeItem(at: sample.root) }
+        let executor = MockExecutor(), runtimes = RuntimeManager(executor: executor, host: host, discoveryPaths: [])
+        var runtime = try runtimes.inspect(sample.runtime); runtime.supportsWindowsX64 = true
+        let prefix = sample.root.appendingPathComponent("Environment")
+        try FileManager.default.createDirectory(at: prefix.appendingPathComponent("drive_c"), withIntermediateDirectories: true)
+        try Data("#arch=win64".utf8).write(to: prefix.appendingPathComponent("system.reg"))
+        let bottle = Bottle(name: "Shared", prefix: prefix, runtimeID: runtime.id)
+        let first = ApplicationEntry(name: "First", executable: sample.root.appendingPathComponent("Game.exe"), bottleID: bottle.id)
+        let second = ApplicationEntry(name: "Second", executable: first.executable, bottleID: bottle.id)
+        var snapshot = LibrarySnapshot(); snapshot.runtimes = [runtime]; snapshot.bottles = [bottle]; snapshot.applications = [first, second]
+        let store = ApplicationLibrary(file: sample.root.appendingPathComponent("library.json")); try await store.save(snapshot)
+        let manager = BottleManager(executor: executor, runtimes: runtimes)
+        let model = BridgeModel(library: store, runtimes: runtimes, bottles: manager,
+            launcher: LaunchService(executor: executor, runtimes: runtimes, bottles: manager), logsDirectory: sample.root.appendingPathComponent("Logs"))
+        await model.load(); model.selectApplication(first.id)
+        model.setApplicationGraphics(.wineD3DVulkan); try await waitForOperation(model)
+        XCTAssertEqual(model.snapshot.bottles[0].graphics, .runtimeDefault)
+        XCTAssertNil(model.snapshot.applications[1].graphicsOverride)
+        model.requestLaunch(); try await waitForOperation(model)
+        XCTAssertTrue(try XCTUnwrap(model.pendingApproval).details.contains("WINE_D3D_CONFIG=renderer=vulkan"))
+        model.approve(try XCTUnwrap(model.pendingApproval)); try await waitForOperation(model)
+        XCTAssertNil(model.errorMessage)
+        XCTAssertEqual(model.selectedApplication?.launchHistory?.last?.state, .completed)
+        XCTAssertNotNil(model.selectedApplication?.launchHistory?.last?.elapsedSeconds)
+        XCTAssertNil(model.selectedApplication?.compatibilityRecords)
+        let commands = await executor.requests; XCTAssertEqual(commands.last?.environment["WINE_D3D_CONFIG"], "renderer=vulkan")
+    }
+    @MainActor
+    func testNativeModelRecoversInterruptedHistoryWithoutExecutingAnything() async throws {
+        let sample = try fixture(); defer { try? FileManager.default.removeItem(at: sample.root) }
+        let executor = MockExecutor(), runtimes = RuntimeManager(executor: executor, host: host, discoveryPaths: [])
+        let runtime = try runtimes.inspect(sample.runtime)
+        let bottle = Bottle(name: "Existing", prefix: sample.root.appendingPathComponent("Environment"), runtimeID: runtime.id)
+        var app = ApplicationEntry(name: "Game", executable: sample.root.appendingPathComponent("Game.exe"), bottleID: bottle.id)
+        app.launchHistory = [LaunchHistoryRecord(runtime: runtime, bottle: bottle, graphics: .runtimeDefault, log: sample.root.appendingPathComponent("run.log"))]
+        var snapshot = LibrarySnapshot(); snapshot.runtimes = [runtime]; snapshot.bottles = [bottle]; snapshot.applications = [app]
+        let store = ApplicationLibrary(file: sample.root.appendingPathComponent("library.json")); try await store.save(snapshot)
+        let model = BridgeModel(library: store, runtimes: runtimes)
+        await model.load()
+        XCTAssertEqual(model.selectedApplication?.launchHistory?.last?.state, .interrupted)
+        let saved = try await store.load(); XCTAssertEqual(saved.applications[0].launchHistory?.last?.state, .interrupted)
+        let commands = await executor.requests; XCTAssertTrue(commands.isEmpty)
+    }
+
 }
 #endif

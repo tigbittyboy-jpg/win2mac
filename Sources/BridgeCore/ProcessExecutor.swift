@@ -147,6 +147,18 @@ public struct FoundationProcessExecutor: ProcessExecuting {
         guard request.executable.isFileURL, request.executable.path.hasPrefix("/") else {
             throw BridgeError.process("Process executable must be an absolute local file URL.")
         }
+        guard !request.executable.path.contains("\0"), request.arguments.allSatisfy({ !$0.contains("\0") }),
+              request.environment.keys.allSatisfy({ !$0.isEmpty && !$0.contains("=") && !$0.contains("\0") }),
+              request.environment.values.allSatisfy({ !$0.contains("\0") }),
+              request.timeout.map({ $0.isFinite && $0 > 0 }) ?? true else {
+            throw BridgeError.process("Invalid process arguments, environment or timeout; no software was executed.")
+        }
+        if let directory = request.workingDirectory {
+            guard directory.isFileURL, directory.path.hasPrefix("/"), !directory.path.contains("\0"),
+                  try directory.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true else {
+                throw BridgeError.process("Process working directory must be an existing absolute local directory.")
+            }
+        }
         let control = ProcessControl()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in

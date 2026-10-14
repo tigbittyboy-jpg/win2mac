@@ -13,8 +13,8 @@ bridge_derived="$bridge_output/DerivedData"
 xcodebuild -project Bridge.xcodeproj -scheme Bridge -configuration Release \
     -destination 'generic/platform=macOS' -derivedDataPath "$bridge_derived" \
     ARCHS=arm64 CODE_SIGN_IDENTITY=- build
-bridge_app="$bridge_derived/Build/Products/Release/Bridge.app"
-[[ -d "$bridge_app" ]] || { printf '%s\n' 'Bridge.app was not produced.' >&2; exit 1; }
+bridge_app="$bridge_derived/Build/Products/Release/Win2Mac.app"
+[[ -d "$bridge_app" ]] || { printf '%s\n' 'Win2Mac.app was not produced.' >&2; exit 1; }
 
 # Ad hoc signing preserves bundle integrity; it is not Developer ID notarization.
 # Some newer Xcode versions omit hardened-runtime flags for ad hoc identities.
@@ -31,9 +31,9 @@ flags = re.search(r'flags=0x([0-9a-fA-F]+)', Path(sys.argv[1]).read_text())
 if flags is None or not int(flags.group(1), 16) & 0x10000:
     raise SystemExit('Packaged Bridge must retain hardened runtime.')
 PY
-lipo "$bridge_app/Contents/MacOS/Bridge" -verify_arch arm64
+lipo "$bridge_app/Contents/MacOS/Win2Mac" -verify_arch arm64
 bridge_links="$bridge_output/linked-libraries.txt"
-otool -L "$bridge_app/Contents/MacOS/Bridge" > "$bridge_links"
+otool -L "$bridge_app/Contents/MacOS/Win2Mac" > "$bridge_links"
 cat "$bridge_links"
 if grep -q 'BridgeCore' "$bridge_links"; then
     printf '%s\n' 'BridgeCore must be statically linked; a runtime dependency would reintroduce the preview signing crash.' >&2
@@ -42,21 +42,21 @@ fi
 [[ ! -d "$bridge_app/Contents/Frameworks/BridgeCore.framework" ]] || {
     printf '%s\n' 'Unexpected embedded BridgeCore framework.' >&2; exit 1;
 }
-otool -l "$bridge_app/Contents/MacOS/Bridge" > "$bridge_output/load-commands.txt"
+otool -l "$bridge_app/Contents/MacOS/Win2Mac" > "$bridge_output/load-commands.txt"
 if awk '$1 == "path" || $1 == "name" { print $2 }' "$bridge_output/load-commands.txt" | grep -Eq '/Users/runner/|/DerivedData/'; then
     printf '%s\n' 'App load commands must not depend on a builder directory.' >&2; exit 1
 fi
 
 # Confirm native process startup, then exercise the actual window after ZIP extraction.
 # This executes only the app built from this checkout, never a Wine runtime/EXE.
-"$bridge_app/Contents/MacOS/Bridge" --bridge-self-check
-ditto -c -k --sequesterRsrc --keepParent "$bridge_app" "$bridge_output/Bridge-macOS-arm64.zip"
+"$bridge_app/Contents/MacOS/Win2Mac" --bridge-self-check
+ditto -c -k --sequesterRsrc --keepParent "$bridge_app" "$bridge_output/Win2Mac-macOS-arm64.zip"
 bridge_extracted="$(mktemp -d "$bridge_output/extracted.XXXXXX")"
-ditto -x -k "$bridge_output/Bridge-macOS-arm64.zip" "$bridge_extracted"
-codesign --verify --deep --strict --verbose=2 "$bridge_extracted/Bridge.app"
-python3 scripts/verify_macos_launch.py "$bridge_extracted/Bridge.app" "$bridge_extracted/startup.json"
+ditto -x -k "$bridge_output/Win2Mac-macOS-arm64.zip" "$bridge_extracted"
+codesign --verify --deep --strict --verbose=2 "$bridge_extracted/Win2Mac.app"
+python3 scripts/verify_macos_launch.py "$bridge_extracted/Win2Mac.app" "$bridge_extracted/startup.json"
 if [[ -f "$bridge_extracted/Bridge-interface.png" ]]; then
     cp "$bridge_extracted/Bridge-interface.png" "$bridge_output/Bridge-interface.png"
 fi
-(cd "$bridge_output" && shasum -a 256 Bridge-macOS-arm64.zip > SHA256SUMS.txt)
-printf '%s\n' "Packaged $bridge_output/Bridge-macOS-arm64.zip"
+(cd "$bridge_output" && shasum -a 256 Win2Mac-macOS-arm64.zip > SHA256SUMS.txt)
+printf '%s\n' "Packaged $bridge_output/Win2Mac-macOS-arm64.zip"

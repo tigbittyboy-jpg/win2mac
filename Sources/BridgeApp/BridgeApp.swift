@@ -24,7 +24,7 @@ struct BridgeApp: App {
         }
     }
     var body: some Scene {
-        WindowGroup("Bridge") {
+        WindowGroup("Win2Mac") {
             ContentView(model: model)
                 .frame(minWidth: 900, minHeight: 650)
                 .task {

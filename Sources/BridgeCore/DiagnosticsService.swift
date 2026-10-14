@@ -24,15 +24,24 @@ public struct DiagnosticsService: DiagnosticsCollecting {
         let runtimes = snapshot.runtimes.map { "\($0.name): \($0.architecture.rawValue), version: \($0.version ?? "unprobed"), x64 declared: \($0.supportsWindowsX64), x86/WoW64 declared: \($0.supportsWindowsX86 == true)" }.joined(separator: "\n")
         let exit = result.map { "\($0.exitCode) (signal: \($0.wasSignalled))" } ?? "No completed launch"
         let graphics = snapshot.bottles.map { "\($0.name): \($0.graphics.displayName)" }.joined(separator: "\n")
+        let failures = snapshot.applications.compactMap { app -> String? in
+            guard let diagnosis = app.lastDiagnosis else { return nil }
+            return "\(app.name): \(diagnosis.category.rawValue), confidence \(diagnosis.confidence.rawValue)\n\(diagnosis.guidance)\n" + diagnosis.evidence.joined(separator: "\n")
+        }.joined(separator: "\n")
+        let inventory = HostInventory.current
         let report = """
-        Bridge Phase 1 diagnostics — review before sharing
+        Win2Mac diagnostics — review before sharing
         OS: \(ProcessInfo.processInfo.operatingSystemVersionString)
         macOS: \(host.isMacOS), Apple Silicon: \(host.isAppleSilicon), Rosetta file present: \(host.rosettaInstalled)
+        Host process: \(inventory.processArchitecture), logical CPUs: \(inventory.logicalProcessorCount), RAM bytes: \(inventory.physicalMemoryBytes)
+        Graphics telemetry: \(inventory.graphicsMeasurement)
         Applications: \(snapshot.applications.count), bottles: \(snapshot.bottles.count)
         Runtimes (user-reported x64/x86 capabilities is not a compatibility test):
         \(runtimes)
         Configured bottle graphics (requested settings, not verified capabilities):
         \(graphics)
+        Saved recent failures:
+        \(failures)
         Last exit: \(exit)
         Recent console (may contain secrets even after path redaction):
         \(String(recentOutput.suffix(65_536)))

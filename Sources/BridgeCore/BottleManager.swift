@@ -102,7 +102,7 @@ public actor BottleManager: BottleManaging {
         do {
             let result = try await executor.run(.init(executable: runtime.executable,
                 arguments: ["wineboot", "-u"], environment: ["WINEPREFIX": path.path, "WINEARCH": "win64"],
-                workingDirectory: path, timeout: 120, removingInheritedEnvironment: ["WINEARCH", "WINEPREFIX"]), output: output)
+                workingDirectory: path, timeout: 120, removingInheritedEnvironment: ExecutionEnvironmentPolicy.managedKeys), output: output)
             guard result.exitCode == 0, !result.wasSignalled else {
                 throw BridgeError.invalidPrefix("wineboot failed (exit \(result.exitCode)). Check process output.")
             }
@@ -126,6 +126,7 @@ public actor BottleManager: BottleManaging {
     }
     public func repair(_ bottle: Bottle, runtime: WineRuntime, approved: Bool, output: @escaping OutputHandler) async throws -> Bottle {
         guard approved else { throw BridgeError.approvalRequired }
+        try EnvironmentRecovery.validateNoInterruptedRestore(bottle.prefix)
         guard bottle.runtimeID == runtime.id, bottle.managed,
               try PrefixPolicy.ownedBottle(at: bottle.prefix, runtimeID: runtime.id).id == bottle.id else {
             throw BridgeError.invalidPrefix("Repair requires a matching Bridge-owned environment and engine.")
@@ -143,7 +144,7 @@ public actor BottleManager: BottleManaging {
         active.insert(path.path); defer { active.remove(path.path) }
         // Exactly one approved update, never change an existing prefix's architecture.
         let result = try await executor.run(.init(executable: runtime.executable, arguments: ["wineboot", "-u"],
-            environment: ["WINEPREFIX": path.path], workingDirectory: path, timeout: 120, removingInheritedEnvironment: ["WINEARCH", "WINEPREFIX"]), output: output)
+            environment: ["WINEPREFIX": path.path], workingDirectory: path, timeout: 120, removingInheritedEnvironment: ExecutionEnvironmentPolicy.managedKeys), output: output)
         guard result.exitCode == 0, !result.wasSignalled else { throw BridgeError.invalidPrefix("Environment repair failed (exit \(result.exitCode)); data was preserved.") }
         try await waitUntilInitialized(path)
         return bottle
@@ -175,6 +176,7 @@ public actor BottleManager: BottleManaging {
     }
     public func acquire(_ bottle: Bottle) throws {
         try PrefixPolicy.validateWin64(bottle.prefix)
+        try EnvironmentRecovery.validateNoInterruptedRestore(bottle.prefix)
         let path = try PrefixPolicy.canonical(bottle.prefix).path
         guard !active.contains(path) else { throw BridgeError.busy }
         active.insert(path)

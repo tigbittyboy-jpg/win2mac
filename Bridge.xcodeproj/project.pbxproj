@@ -26,6 +26,16 @@
 "isa" = "PBXBuildFile";
 "fileRef" = "B919313574100B41750C0366";
 };
+"4D7B539D87AB163E79C5AEE9" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Sources/BridgeCore/CompatibilityRecord.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"2C27A80B7D948E6C5E839EBC" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "4D7B539D87AB163E79C5AEE9";
+};
 "391B2584553EAF7AC51429E2" = {
 "isa" = "PBXFileReference";
 "lastKnownFileType" = "sourcecode.swift";
@@ -46,6 +56,16 @@
 "isa" = "PBXBuildFile";
 "fileRef" = "942BF1A3C22B76F3A10B92D8";
 };
+"486C265E05EAF41FE9037A79" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Sources/BridgeCore/DependencyManager.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"29BB7456D27E4214448FF4F5" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "486C265E05EAF41FE9037A79";
+};
 "899DB90E7477630B2095955D" = {
 "isa" = "PBXFileReference";
 "lastKnownFileType" = "sourcecode.swift";
@@ -55,6 +75,26 @@
 "6B7F659667BD66A6E0466CA6" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "899DB90E7477630B2095955D";
+};
+"15FC7185DF47CD1C848FF2A4" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Sources/BridgeCore/EnvironmentConfiguration.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"E538264ECE478A88E4A6C77D" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "15FC7185DF47CD1C848FF2A4";
+};
+"5A9623E54F03DA4BC99909E0" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Sources/BridgeCore/EnvironmentRecovery.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"AA3D58093521663045C545F3" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "5A9623E54F03DA4BC99909E0";
 };
 "94775C743FE75B31780129FB" = {
 "isa" = "PBXFileReference";
@@ -76,6 +116,26 @@
 "isa" = "PBXBuildFile";
 "fileRef" = "DFAD88EE9B922453F10709F6";
 };
+"44F9C0FB5868B729672BA53F" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Sources/BridgeCore/ExecutionPolicy.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"2ECD2583C89E6EE1696CB633" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "44F9C0FB5868B729672BA53F";
+};
+"1BFF19A9D0F3381DE3FAFA78" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Sources/BridgeCore/FileIntegrity.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"A6205C24D0D68F06483A7792" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "1BFF19A9D0F3381DE3FAFA78";
+};
 "D18B47793FF206A220EBF9A3" = {
 "isa" = "PBXFileReference";
 "lastKnownFileType" = "sourcecode.swift";
@@ -85,6 +145,16 @@
 "110006B0306B2AD8237A2E19" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "D18B47793FF206A220EBF9A3";
+};
+"378DEB50A6C60AE9470F1CFB" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Sources/BridgeCore/GraphicsRecommendation.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"537FDB772D3DB6CE015E7CB6" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "378DEB50A6C60AE9470F1CFB";
 };
 "62306FCEAB7CFD181F59685A" = {
 "isa" = "PBXFileReference";
@@ -105,6 +175,16 @@
 "EE86623B2A7C9821E872D106" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "7043DDD4825D509022D8F24F";
+};
+"51D46A761DB4E972F8334F72" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Sources/BridgeCore/LaunchHistory.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"7F615660B4E55A72310E86A2" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "51D46A761DB4E972F8334F72";
 };
 "5EBC7447AC1A0D433A49160E" = {
 "isa" = "PBXFileReference";
@@ -146,24 +226,43 @@
 "isa" = "PBXBuildFile";
 "fileRef" = "DB5A357BD3AD0B790164A6AA";
 };
+"280EC6829C3FF7C9F19DC11A" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Sources/BridgeCore/SteamManager.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"5D829322E11A62AF5543AA4B" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "280EC6829C3FF7C9F19DC11A";
+};
 "7411E6B596AF71C0B220EA36" = {
 "isa" = "PBXGroup";
 "name" = "BridgeCore";
 "children" = (
 "BD41EA6FB9D12A432951E693",
 "B919313574100B41750C0366",
+"4D7B539D87AB163E79C5AEE9",
 "391B2584553EAF7AC51429E2",
 "942BF1A3C22B76F3A10B92D8",
+"486C265E05EAF41FE9037A79",
 "899DB90E7477630B2095955D",
+"15FC7185DF47CD1C848FF2A4",
+"5A9623E54F03DA4BC99909E0",
 "94775C743FE75B31780129FB",
 "DFAD88EE9B922453F10709F6",
+"44F9C0FB5868B729672BA53F",
+"1BFF19A9D0F3381DE3FAFA78",
 "D18B47793FF206A220EBF9A3",
+"378DEB50A6C60AE9470F1CFB",
 "62306FCEAB7CFD181F59685A",
 "7043DDD4825D509022D8F24F",
+"51D46A761DB4E972F8334F72",
 "5EBC7447AC1A0D433A49160E",
 "00488B5174AAE0C2C376AE31",
 "9BB5D5EB9CBE923BA24C5018",
 "DB5A357BD3AD0B790164A6AA",
+"280EC6829C3FF7C9F19DC11A",
 );
 "sourceTree" = "<group>";
 };
@@ -173,18 +272,27 @@
 "files" = (
 "B8FE6B3D3ECD1477D5606318",
 "F368D1EC1DD4A5897395192A",
+"2C27A80B7D948E6C5E839EBC",
 "4194C3D5324B712DD9503635",
 "2DD3068CA9A0419C316745B6",
+"29BB7456D27E4214448FF4F5",
 "6B7F659667BD66A6E0466CA6",
+"E538264ECE478A88E4A6C77D",
+"AA3D58093521663045C545F3",
 "9F87D1CA38BF679A63632C35",
 "7441251C3520C7FDB54877C7",
+"2ECD2583C89E6EE1696CB633",
+"A6205C24D0D68F06483A7792",
 "110006B0306B2AD8237A2E19",
+"537FDB772D3DB6CE015E7CB6",
 "183DFA4C6DE41C9F65492AC4",
 "EE86623B2A7C9821E872D106",
+"7F615660B4E55A72310E86A2",
 "5652F86C32982543D07BBCBC",
 "5B50DAFF15675CDA31BB428F",
 "BA01773BF919FB0063E059E9",
 "A4DBE1F102EB677DA954F41E",
+"5D829322E11A62AF5543AA4B",
 );
 "runOnlyForDeploymentPostprocessing" = 0;
 };
@@ -261,7 +369,7 @@
 "isa" = "PBXFileReference";
 "explicitFileType" = "wrapper.application";
 "includeInIndex" = 0;
-"path" = "Bridge.app";
+"path" = "Win2Mac.app";
 "sourceTree" = "BUILT_PRODUCTS_DIR";
 };
 "87F9A8CBE32EDE03479853C8" = {
@@ -304,6 +412,16 @@
 "isa" = "PBXBuildFile";
 "fileRef" = "C3670C6834AC1E4EC5CAF7F7";
 };
+"C7EE1D25C5E335E3F78F3F48" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Tests/BridgeCoreTests/RebuildTests.swift";
+"sourceTree" = "SOURCE_ROOT";
+};
+"AEABC2E3042BD14D60DBBA6A" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "C7EE1D25C5E335E3F78F3F48";
+};
 "DF3F3EE22AD4E818372893AE" = {
 "isa" = "PBXBuildFile";
 "fileRef" = "2D9BD60BDE76A07B37244A79";
@@ -316,6 +434,7 @@
 "0296F3A5065E36D94376DC08",
 "DAD8CEB30542F429E45B4D04",
 "C3670C6834AC1E4EC5CAF7F7",
+"C7EE1D25C5E335E3F78F3F48",
 "2D9BD60BDE76A07B37244A79",
 );
 "sourceTree" = "<group>";
@@ -328,6 +447,7 @@
 "314D21B365DE20EA9D13AFCB",
 "77ED55E2BC3BF7E444A2AC7C",
 "441D405C826E7E10593EF19A",
+"AEABC2E3042BD14D60DBBA6A",
 "DF3F3EE22AD4E818372893AE",
 );
 "runOnlyForDeploymentPostprocessing" = 0;
@@ -365,8 +485,8 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.BridgeCore";
 "GENERATE_INFOPLIST_FILE" = "NO";
-"CURRENT_PROJECT_VERSION" = "19";
-"MARKETING_VERSION" = "0.2.0";
+"CURRENT_PROJECT_VERSION" = "20";
+"MARKETING_VERSION" = "0.3.0";
 "DEFINES_MODULE" = "YES";
 "SKIP_INSTALL" = "YES";
 "MACH_O_TYPE" = "staticlib";
@@ -395,8 +515,8 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.BridgeCore";
 "GENERATE_INFOPLIST_FILE" = "NO";
-"CURRENT_PROJECT_VERSION" = "19";
-"MARKETING_VERSION" = "0.2.0";
+"CURRENT_PROJECT_VERSION" = "20";
+"MARKETING_VERSION" = "0.3.0";
 "DEFINES_MODULE" = "YES";
 "SKIP_INSTALL" = "YES";
 "MACH_O_TYPE" = "staticlib";
@@ -471,11 +591,11 @@
 "CODE_SIGN_IDENTITY" = "-";
 "CODE_SIGN_STYLE" = "Manual";
 "ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
-"PRODUCT_NAME" = "$(TARGET_NAME)";
+"PRODUCT_NAME" = "Win2Mac";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.Bridge";
 "GENERATE_INFOPLIST_FILE" = "YES";
-"CURRENT_PROJECT_VERSION" = "19";
-"MARKETING_VERSION" = "0.2.0";
+"CURRENT_PROJECT_VERSION" = "20";
+"MARKETING_VERSION" = "0.3.0";
 "LD_RUNPATH_SEARCH_PATHS" = (
 "$(inherited)",
 "@executable_path/../Frameworks",
@@ -483,8 +603,8 @@
 );
 "ENABLE_APP_SANDBOX" = "NO";
 "ENABLE_HARDENED_RUNTIME" = "YES";
-"INFOPLIST_KEY_CFBundleDisplayName" = "Bridge";
-"INFOPLIST_KEY_LSApplicationCategoryType" = "public.app-category.utilities";
+"INFOPLIST_KEY_CFBundleDisplayName" = "Win2Mac";
+"INFOPLIST_KEY_LSApplicationCategoryType" = "public.app-category.games";
 "INFOPLIST_KEY_NSPrincipalClass" = "NSApplication";
 "SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
 "ENABLE_TESTABILITY" = "YES";
@@ -507,11 +627,11 @@
 "CODE_SIGN_IDENTITY" = "-";
 "CODE_SIGN_STYLE" = "Manual";
 "ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
-"PRODUCT_NAME" = "$(TARGET_NAME)";
+"PRODUCT_NAME" = "Win2Mac";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.Bridge";
 "GENERATE_INFOPLIST_FILE" = "YES";
-"CURRENT_PROJECT_VERSION" = "19";
-"MARKETING_VERSION" = "0.2.0";
+"CURRENT_PROJECT_VERSION" = "20";
+"MARKETING_VERSION" = "0.3.0";
 "LD_RUNPATH_SEARCH_PATHS" = (
 "$(inherited)",
 "@executable_path/../Frameworks",
@@ -519,8 +639,8 @@
 );
 "ENABLE_APP_SANDBOX" = "NO";
 "ENABLE_HARDENED_RUNTIME" = "YES";
-"INFOPLIST_KEY_CFBundleDisplayName" = "Bridge";
-"INFOPLIST_KEY_LSApplicationCategoryType" = "public.app-category.utilities";
+"INFOPLIST_KEY_CFBundleDisplayName" = "Win2Mac";
+"INFOPLIST_KEY_LSApplicationCategoryType" = "public.app-category.games";
 "INFOPLIST_KEY_NSPrincipalClass" = "NSApplication";
 "SWIFT_OPTIMIZATION_LEVEL" = "-O";
 };
@@ -595,8 +715,8 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.BridgeCoreTests";
 "GENERATE_INFOPLIST_FILE" = "YES";
-"CURRENT_PROJECT_VERSION" = "19";
-"MARKETING_VERSION" = "0.2.0";
+"CURRENT_PROJECT_VERSION" = "20";
+"MARKETING_VERSION" = "0.3.0";
 "LD_RUNPATH_SEARCH_PATHS" = (
 "$(inherited)",
 "@executable_path/../Frameworks",
@@ -627,8 +747,8 @@
 "PRODUCT_NAME" = "$(TARGET_NAME)";
 "PRODUCT_BUNDLE_IDENTIFIER" = "org.bridge-launcher.BridgeCoreTests";
 "GENERATE_INFOPLIST_FILE" = "YES";
-"CURRENT_PROJECT_VERSION" = "19";
-"MARKETING_VERSION" = "0.2.0";
+"CURRENT_PROJECT_VERSION" = "20";
+"MARKETING_VERSION" = "0.3.0";
 "LD_RUNPATH_SEARCH_PATHS" = (
 "$(inherited)",
 "@executable_path/../Frameworks",

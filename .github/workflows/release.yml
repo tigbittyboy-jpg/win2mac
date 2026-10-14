@@ -1,4 +1,4 @@
-name: Package Bridge preview
+name: Package Win2Mac preview
 on:
   push:
     tags: ['v*']
@@ -92,9 +92,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BRIDGE_PACKAGE_DIR: ${{ runner.temp }}/BridgePackage
         run: |
-          bridge_assets=("$BRIDGE_PACKAGE_DIR/Bridge-macOS-arm64.zip" "$BRIDGE_PACKAGE_DIR/SHA256SUMS.txt")
+          bridge_assets=("$BRIDGE_PACKAGE_DIR/Win2Mac-macOS-arm64.zip" "$BRIDGE_PACKAGE_DIR/SHA256SUMS.txt")
           if [[ -f "$BRIDGE_PACKAGE_DIR/Bridge-interface.png" ]]; then bridge_assets+=("$BRIDGE_PACKAGE_DIR/Bridge-interface.png"); fi
           gh release create "$GITHUB_REF_NAME" \
             "${bridge_assets[@]}" \
-            --verify-tag --prerelease --title "Bridge $GITHUB_REF_NAME — Apple Silicon preview" \
+            --verify-tag --prerelease --title "Win2Mac $GITHUB_REF_NAME — Apple Silicon preview" \
             --notes-file docs/RELEASE_NOTES.md

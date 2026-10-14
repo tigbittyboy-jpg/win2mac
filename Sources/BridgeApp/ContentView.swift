@@ -5,7 +5,7 @@ import BridgeCore
 
 struct ContentView: View {
     @ObservedObject var model: BridgeModel
-    @AppStorage("bridge.appearance") private var appearance = "System"
+    @AppStorage("bridge.appearance") private var appearance = "Dark"
     @AppStorage("bridge.library.grid") private var grid = true
     @AppStorage("bridge.library.sort") private var sortValue = LibrarySort.name.rawValue
     @State private var search = ""
@@ -16,8 +16,15 @@ struct ContentView: View {
     @State private var settingsTab = "General"
     @State private var rename = ""
     @State private var dropTarget = false
+    @State private var showCompatibilityRecord = false
+    @State private var observedLaunch: VerificationOutcome = .notTested
+    @State private var observedRendering: VerificationOutcome = .notTested
+    @State private var observedInput: VerificationOutcome = .notTested
+    @State private var observedAudio: VerificationOutcome = .notTested
+    @State private var observedStability: VerificationOutcome = .notTested
+    @State private var observationNotes = ""
     private var entries: [ApplicationEntry] {
-        LibraryQuery.filter(model.snapshot.applications, search: search, favoritesOnly: favoritesOnly,
+        LibraryQuery.filter(model.snapshot.applications.filter { model.section != .applications || $0.steamAppID == nil }, search: search, favoritesOnly: favoritesOnly,
             sort: LibrarySort(rawValue: sortValue) ?? .name)
     }
     var body: some View {
@@ -25,14 +32,16 @@ struct ContentView: View {
             List(NavigationSection.allCases, selection: $model.section) { section in
                 Label(section.rawValue, systemImage: section.icon).tag(section)
             }
-            .navigationTitle("Bridge")
+            .navigationTitle("Win2Mac")
             .navigationSplitViewColumnWidth(min: 160, ideal: 190)
         } detail: {
             VStack(spacing: 0) {
                 Group {
                     switch model.section ?? .home {
                     case .home: homeView
-                    case .library: libraryView
+                    case .library, .applications: libraryView
+                    case .steam: steamView
+                    case .diagnostics: diagnosticsView
                     case .compatibility: compatibilityView
                     case .settings: settingsView
                     }
@@ -69,6 +78,25 @@ struct ContentView: View {
                     Button(approval.actionTitle) { model.approve(approval) }.buttonStyle(.borderedProminent) }
             }.padding(24).frame(width: 640, height: 460)
         }
+        .sheet(isPresented: $showCompatibilityRecord) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Record observed compatibility").font(.title2.bold())
+                Text("Record only what you tested on this Mac. A process exit is not proof of rendering, input, audio or stability. Steam records identify the client; the game's executable architecture remains unverified.").foregroundStyle(.secondary)
+                observationPicker("Launch", selection: $observedLaunch)
+                observationPicker("Rendering", selection: $observedRendering)
+                observationPicker("Input", selection: $observedInput)
+                observationPicker("Audio", selection: $observedAudio)
+                observationPicker("Stability", selection: $observedStability)
+                TextField("Known issues and test duration", text: $observationNotes)
+                HStack {
+                    Button("Cancel") { showCompatibilityRecord = false }; Spacer()
+                    Button("Save Observations") {
+                        model.recordCompatibility(launch: observedLaunch, rendering: observedRendering, input: observedInput, audio: observedAudio, stability: observedStability, notes: observationNotes)
+                        showCompatibilityRecord = false
+                    }.disabled(!model.canEdit)
+                }
+            }.padding(24).frame(width: 580)
+        }
         .sheet(item: $model.pendingRemoval) { bottle in
             VStack(alignment: .leading, spacing: 16) {
                 Text(bottle.managed ? "Delete environment and its data?" : "Remove environment association?").font(.title2)
@@ -98,7 +126,7 @@ struct ContentView: View {
                 HStack { Button("Remove Library Entry", role: .destructive) { model.removeSelectedApplication(); showApplicationSettings = false }; Spacer(); Button("Done") { showApplicationSettings = false } }
             }.padding(24).frame(width: 800, height: 650)
         }
-        .alert(model.diagnosis?.title ?? "Bridge", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
+        .alert(model.diagnosis?.title ?? "Win2Mac", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("Technical Details") { showDetails = true }
             Button("OK") { model.errorMessage = nil }
         } message: { Text(model.diagnosis?.guidance ?? model.errorMessage ?? "") }
@@ -108,7 +136,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Your Windows apps. On your Mac.").font(.largeTitle.bold())
-                    Text("Choose an EXE. Bridge checks your engine and prepares a dedicated Windows environment.").foregroundStyle(.secondary)
+                    Text("Choose an EXE. Win2Mac checks your engine and prepares a dedicated Windows environment.").foregroundStyle(.secondary)
                     Button("Run Windows App", systemImage: "play.fill") { model.selectEXE() }
                         .buttonStyle(.borderedProminent).controlSize(.large).disabled(!model.canEdit).keyboardShortcut("o")
                     Text("Or drop an EXE anywhere in this window.").font(.caption).foregroundStyle(.secondary)
@@ -117,7 +145,7 @@ struct ContentView: View {
                     GroupBox {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("Set up a compatibility engine", systemImage: "sparkles").font(.headline)
-                            Text("Bridge uses a Wine engine installed by you. Choose it, check its documented Windows support, and approve a version check.")
+                            Text("Win2Mac uses a Wine engine installed by you. Choose it, check its documented Windows support, and approve a version check.")
                             Button("Start Setup") { model.section = .compatibility }
                         }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
                     }
@@ -160,6 +188,8 @@ struct ContentView: View {
         return Image(nsImage: icon).resizable().scaledToFit().frame(width: size, height: size).accessibilityHidden(true)
     }
     private func status(_ app: ApplicationEntry) -> String {
+        if app.lastFailure != nil && (app.lastLaunchedAt ?? .distantFuture) > (app.compatibilityRecords?.last?.date ?? .distantPast) { return "Last launch needs attention" }
+        if let record = app.compatibilityRecords?.last { return "Observed " + record.status.rawValue.lowercased() + " · " + record.date.formatted(date: .abbreviated, time: .omitted) }
         if app.lastFailure != nil { return "Last launch needs attention" }
         if app.isInstaller == true { return "Installer · choose launch target after setup" }
         if let code = app.lastExitCode { return code == 0 ? "Last process exited normally · unverified" : "Last launch needs attention" }
@@ -179,19 +209,40 @@ struct ContentView: View {
     @ViewBuilder private var applicationDetails: some View {
         if let app = model.selectedApplication {
             VStack(alignment: .leading, spacing: 20) {
-                appIcon(app, size: 72)
+                if let art = app.customIcon.flatMap({ NSImage(contentsOf: $0) }) {
+                    Image(nsImage: art).resizable().scaledToFit().frame(maxHeight: 220).clipShape(RoundedRectangle(cornerRadius: 12))
+                } else { appIcon(app, size: 72) }
                 Text(app.name).font(.title.bold())
                 Text(status(app)).foregroundStyle(.secondary)
                 Button(app.isInstaller == true ? "Run Installer" : "Play", systemImage: "play.fill") { model.requestLaunch() }.buttonStyle(.borderedProminent).controlSize(.large).disabled(!model.canEdit)
                 HStack { Button("Settings", systemImage: "slider.horizontal.3") { rename = app.name; showApplicationSettings = true }; Button("Folder", systemImage: "folder") { model.openApplicationFolder() } }
                 if app.lastLog != nil { Button("View Launch Log", systemImage: "doc.text") { model.openLaunchLog() } }
+                Button("Export Compatibility Matrix…") { model.exportCompatibilityMatrix() }
+                Button("Record Compatibility…") { showCompatibilityRecord = true }
+                    .disabled(!model.canEdit || app.bottleID == nil)
+                if let record = app.compatibilityRecords?.last {
+                    Text("Observed on \(record.os) · \(record.graphics.displayName)").font(.caption).foregroundStyle(.secondary)
+                    Text(record.notes).font(.caption)
+                }
                 Divider()
                 LabeledContent("Launch attempts", value: String(app.launchCount ?? 0))
+                if let lastRun = app.launchHistory?.last {
+                    Text("Last process: " + lastRun.state.rawValue).font(.caption)
+                    if let seconds = lastRun.elapsedSeconds { LabeledContent("Process duration", value: String(format: "%.1f seconds", seconds)) }
+                }
+                DisclosureGroup("Process history") {
+                    ForEach((app.launchHistory ?? []).reversed()) { run in
+                        VStack(alignment: .leading) {
+                            Text(run.startedAt.formatted() + " · " + run.state.rawValue).font(.caption)
+                            Text(run.diagnosis?.guidance ?? "Process result only; rendering and game functionality need observation.").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
                 if let date = app.lastLaunchedAt { LabeledContent("Last launched", value: date.formatted(date: .abbreviated, time: .shortened)) }
                 if let info = app.inspection { LabeledContent("Executable", value: info.summary) }
                 if let bottle = model.snapshot.bottles.first(where: { $0.id == app.bottleID }), let runtime = model.snapshot.runtimes.first(where: { $0.id == bottle.runtimeID }) {
                     LabeledContent("Engine", value: runtime.version ?? runtime.name)
-                } else { Text("Bridge will select a configured compatible engine.").font(.caption).foregroundStyle(.secondary) }
+                } else { Text("Win2Mac will select a configured compatible engine.").font(.caption).foregroundStyle(.secondary) }
                 Text(app.executable.path).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 if model.installerBottleID == app.bottleID {
                     GroupBox("Choose installed launch target") {
@@ -208,7 +259,7 @@ struct ContentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 Text("Check your setup").font(.largeTitle.bold())
-                Text("Bridge runs natively on Apple Silicon. Your Wine engine provides Windows execution and graphics translation.").foregroundStyle(.secondary)
+                Text("Win2Mac runs natively on Apple Silicon. Your Wine engine provides Windows execution and graphics translation.").foregroundStyle(.secondary)
                 GroupBox("1 · Select an installed Wine engine") { runtimeSelection.padding(12) }
                 GroupBox("2 · Verify readiness") {
                     VStack(alignment: .leading, spacing: 12) {
@@ -237,7 +288,7 @@ struct ContentView: View {
                 Form {
                     Picker("Appearance", selection: $appearance) { Text("System").tag("System"); Text("Light").tag("Light"); Text("Dark").tag("Dark") }
                     Toggle("Show library as a grid", isOn: $grid)
-                    Text("Bridge selects a configured compatible engine automatically for new apps. Each app keeps its own environment and saved launch settings. First execution requires approval. You can remember approval for an unchanged app and engine to launch with one click.").foregroundStyle(.secondary)
+                    Text("Win2Mac selects a configured compatible engine automatically for new apps. Each app keeps its own environment and saved launch settings. First execution requires approval. You can remember approval for an unchanged app and engine to launch with one click.").foregroundStyle(.secondary)
                     Text("Logs are saved locally in Application Support/Bridge/Logs. Removing a library entry never deletes its application or environment.").foregroundStyle(.secondary)
                 }.padding(24)
             }
@@ -252,7 +303,24 @@ struct ContentView: View {
                         Text("Automatic on first launch").tag(Optional<UUID>.none)
                         ForEach(model.snapshot.bottles) { Text($0.name).tag(Optional($0.id)) }
                     }.disabled(!model.canEdit)
-                    if let bottle = model.snapshot.bottles.first(where: { $0.id == app.bottleID }) { graphicsPicker(bottle) }
+                    if let bottle = model.snapshot.bottles.first(where: { $0.id == app.bottleID }) {
+                        Picker("This game's graphics", selection: Binding(get: { model.selectedApplication?.graphicsOverride }, set: { model.setApplicationGraphics($0) })) {
+                            Text("Use environment configuration").tag(Optional<GraphicsBackend>.none)
+                            Text("Runtime default").tag(Optional(GraphicsBackend.runtimeDefault))
+                            Text("WineD3D Vulkan (experimental)").tag(Optional(GraphicsBackend.wineD3DVulkan))
+                            if bottle.graphics == .dxvkMoltenVK { Text("Installed DXVK").tag(Optional(GraphicsBackend.dxvkMoltenVK)) }
+                        }.disabled(!model.canEdit)
+                        Button("Review Observed Graphics Recommendation") { model.reviewGraphicsRecommendation() }.disabled(!model.canEdit)
+                        if let recommendation = model.graphicsRecommendation {
+                            Text(recommendation.reason).font(.caption)
+                            if recommendation.evidenceRecordID != nil {
+                                Button("Use " + recommendation.backend.displayName) { model.setApplicationGraphics(recommendation.backend) }.disabled(!model.canEdit)
+                            }
+                        }
+                        Text("Default recommendation: retain the known-working configuration. Native DLL changes affect the whole environment; use Settings → Environments for reviewed DXVK changes.").font(.caption)
+                        if app.steamAppID == nil { Button("Reset to Fresh Environment…") { model.requestFreshEnvironment() }.disabled(!model.canEdit) }
+                        DisclosureGroup("Windows prerequisites") { dependencyControls }
+                    }
                     Text("Arguments · one argument per line").font(.headline)
                     TextEditor(text: $model.argumentsText).font(.system(.body, design: .monospaced)).frame(height: 90).border(Color.secondary.opacity(0.2))
                     TextField("Working directory · empty uses EXE folder", text: $model.workingDirectoryText)
@@ -317,7 +385,7 @@ struct ContentView: View {
                 Text("For wrappers, choose the architecture of the launched Wine engine. Inspection does not prove Windows x64 support.").font(.caption)
                 Toggle("My runtime provider documents Windows x64 execution on this Mac", isOn: $model.runtimeSupportsX64).disabled(!model.canEdit)
                 Toggle("My runtime provider documents Windows x86 (32-bit/WoW64) execution on this Mac", isOn: $model.runtimeSupportsX86).disabled(!model.canEdit)
-                Text("32-bit EXEs require a compatible WoW64 runtime in a win64 bottle. Bridge’s manual DXVK import supports x64 games only.").font(.caption)
+                Text("32-bit EXEs require a compatible WoW64 runtime in a win64 bottle. Win2Mac’s manual DXVK import supports x64 games only.").font(.caption)
                 HStack {
                     Button("Save Runtime Settings") { model.saveRuntimeSettings() }
                     Button("Probe Version…") { model.requestProbe() }
@@ -326,7 +394,18 @@ struct ContentView: View {
                     Text("Confirm the runtime's architecture and Windows x64 support, then save settings to enable bottle creation.")
                         .font(.callout)
                 }
+                Picker("Runtime provider", selection: $model.runtimeProvider) {
+                    ForEach(RuntimeProvider.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }.disabled(!model.canEdit)
+                Text(model.runtimeProvider.integrationNote).font(.caption).foregroundStyle(.secondary)
+                Link("Provider requirements and license", destination: model.runtimeProvider.documentation)
                 Text("Last version: \(runtime.version ?? "not probed")").font(.caption)
+                if let identity = runtime.identity {
+                    Text("Recorded executable SHA-256: \(identity.sha256)").font(.caption.monospaced()).textSelection(.enabled)
+                    Text(identity.scope).font(.caption).foregroundStyle(.secondary)
+                }
+                Button("Register Changed Engine as Separate Revision") { model.registerRuntimeRevision() }.disabled(!model.canEdit)
+                Text("Existing environment associations are never switched automatically. Keep the previous provider installation to make runtime rollback possible.").font(.caption)
             }
         }
     }
@@ -334,7 +413,7 @@ struct ContentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("User-installed Wine runtimes").font(.title2)
-                Text("Bridge does not bundle or download compatibility engines. Select the executable or wrapper documented by your runtime provider.")
+                Text("Win2Mac does not bundle or download compatibility engines. Select the executable or wrapper documented by your runtime provider.")
                 runtimeSelection
                 Text("Intel engines require Rosetta 2 on Apple Silicon. Native ARM64 engines need their own supported x64 translation path. Some engines require a newer macOS than Bridge's macOS 14 minimum.")
                 Link("Apple's Rosetta instructions", destination: URL(string: "https://support.apple.com/en-us/102527")!)
@@ -367,9 +446,23 @@ struct ContentView: View {
                             Text(bottle.name).font(.headline)
                             Text(bottle.prefix.path).font(.caption).textSelection(.enabled)
                             Text(bottle.managed ? "Bridge-managed" : "External — association only").font(.caption).foregroundStyle(.secondary)
+                            Text("Requested Windows version: " + (bottle.requestedWindowsVersion?.rawValue ?? "Provider default")).font(.caption)
+                            Menu("Change Windows Version…") {
+                                ForEach(WindowsVersion.allCases, id: \.self) { version in
+                                    Button(version.rawValue) { model.requestWindowsVersion(version, bottle: bottle) }
+                                }
+                            }.disabled(!model.canEdit || !bottle.managed)
                             graphicsPicker(bottle)
                         }
                         Spacer()
+                        Menu("Recovery") {
+                            Button("Backup…") { model.requestBackup(bottle) }
+                            Button("Duplicate…") { model.requestDuplicate(bottle) }
+                            Button("Load Backups") { model.refreshBackups(bottle) }
+                            ForEach(model.environmentBackups[bottle.id] ?? []) { backup in
+                                Button("Restore " + backup.createdAt.formatted()) { model.requestRestore(backup, bottle: bottle) }
+                            }
+                        }.disabled(!model.canEdit || !bottle.managed)
                         Button("Repair…") { model.requestRepair(bottle) }.disabled(!model.canEdit || !bottle.managed)
                         Button(bottle.managed ? "Delete…" : "Remove…", role: .destructive) { model.pendingRemoval = bottle }.disabled(!model.canEdit)
                     }.padding(.vertical, 6)
@@ -379,6 +472,28 @@ struct ContentView: View {
     }
     private var diagnosticsView: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Text("Diagnostics").font(.largeTitle.bold())
+            let host = HostInventory.current
+            Text("\(host.processArchitecture) · \(host.logicalProcessorCount) logical CPUs · \(host.physicalMemoryBytes / 1_073_741_824) GiB RAM").foregroundStyle(.secondary)
+            Text(host.hardwareModel).font(.caption)
+            Text(host.operatingSystem).font(.caption)
+            Text(host.graphicsMeasurement).font(.caption).foregroundStyle(.secondary)
+            if let diagnosis = model.diagnosis {
+                GroupBox(diagnosis.title) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Confidence: " + diagnosis.confidence.rawValue).font(.headline)
+                        Text(diagnosis.guidance)
+                        ForEach(Array(diagnosis.evidence.enumerated()), id: \.offset) { _, line in Text(line).font(.caption.monospaced()).textSelection(.enabled) }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            ForEach(model.snapshot.applications.filter { $0.lastDiagnosis != nil }) { app in
+                if let failure = app.lastDiagnosis {
+                    GroupBox(app.name + " · " + failure.title) {
+                        Text(failure.guidance + "\nConfidence: " + failure.confidence.rawValue).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
             Text("Review output before sharing: path redaction cannot remove every secret.").font(.caption)
             HStack {
                 Button("Refresh") { model.refreshDiagnostics() }
@@ -386,6 +501,71 @@ struct ContentView: View {
             }
             ScrollView { Text(model.diagnosticsText).font(.system(.body, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
         }.padding()
+    }
+    private func observationPicker(_ name: String, selection: Binding<VerificationOutcome>) -> some View {
+        Picker(name, selection: selection) {
+            ForEach(VerificationOutcome.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+        }
+    }
+    private var dependencyControls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let info = model.selectedApplication?.inspection {
+                ForEach(DependencyManager.suggestions(for: info), id: \.component) { suggestion in
+                    Text(suggestion.component.rawValue + ": " + suggestion.explanation).font(.caption)
+                }
+            }
+            Picker("Component", selection: $model.dependencyComponent) {
+                ForEach(WindowsDependency.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+            Link("Official Microsoft installer and requirements", destination: model.dependencyComponent.documentation)
+            Picker("Dependency payload architecture", selection: $model.dependencyArchitecture) {
+                Text("Windows x64").tag(WindowsMachine.x64)
+                Text("Windows x86").tag(WindowsMachine.x86)
+            }
+            Text("A bootstrap installer's architecture does not determine its payload. Choose the component edition required by your game.").font(.caption)
+            TextField("Publisher-reported version", text: $model.dependencyVersion)
+            Text("Select an official installer for the required architecture. For DirectX, extract the official package and choose DXSETUP.exe; keep its adjacent installation files. Confirm your Wine provider supports the component. Back up first; all apps sharing this environment may be affected.").font(.caption)
+            Toggle("I reviewed the previous uncertain outcome and want to retry", isOn: $model.retryDependency)
+            HStack {
+                Button("Select Installer and Review…") { model.requestDependencyInstall() }.disabled(!model.canEdit || model.dependencyVersion.isEmpty)
+                Button("Read Installation Records") { model.refreshDependencies() }.disabled(!model.canEdit)
+            }
+            ForEach(model.dependencyRecords) { record in
+                Text(record.component.rawValue + " · " + record.state.rawValue + " · " + record.details).font(.caption).textSelection(.enabled)
+            }
+        }.padding(.vertical, 8)
+    }
+    private var steamView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Windows Steam").font(.largeTitle.bold())
+                Text("Use a dedicated shared environment for Steam authentication and its installed games. Each imported game keeps its arguments and requested graphics. A running Steam client may ignore a new process environment; close it before changing graphics. DRM, anti-cheat and game support depend on the publisher and engine.").foregroundStyle(.secondary)
+                Picker("Steam environment", selection: $model.steamBottleID) {
+                    Text("Choose an initialized environment").tag(Optional<UUID>.none)
+                    ForEach(model.snapshot.bottles) { Text($0.name).tag(Optional($0.id)) }
+                }.disabled(!model.canEdit)
+                HStack {
+                    Button("Create Environment…") { model.section = .settings; settingsTab = "Environments" }
+                    Button("Detect Steam and Games") { model.refreshSteam() }.disabled(!model.canEdit || model.steamBottleID == nil)
+                }
+                Link("Download official Windows Steam from Valve", destination: SteamManager.installerURL)
+                Toggle("I reviewed an uncertain Steam installation and want to retry", isOn: $model.retrySteamInstallation)
+                Button("Install Downloaded Steam…") { model.requestSteamInstall() }.disabled(!model.canEdit || model.steamBottleID == nil)
+                if model.steamClient != nil { Button("Launch Steam…") { model.launchSteamClient() }.buttonStyle(.borderedProminent).disabled(!model.canEdit) }
+                ForEach(Array(model.steamWarnings.enumerated()), id: \.offset) { _, warning in Text(warning).font(.caption).foregroundStyle(.orange) }
+                if model.steamGames.isEmpty { Text("Detected installed games appear here after a scan. An installation is not a compatibility result.").foregroundStyle(.secondary) }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220))], spacing: 16) {
+                    ForEach(model.steamGames) { game in
+                        VStack(alignment: .leading, spacing: 12) {
+                            if let art = game.artwork.flatMap({ NSImage(contentsOf: $0) }) { Image(nsImage: art).resizable().scaledToFit().frame(height: 140) }
+                            Text(game.name).font(.headline)
+                            Text("Installed · AppID " + game.appID).font(.caption).foregroundStyle(.secondary)
+                            Button("Add to Library") { model.importSteamGame(game) }.disabled(!model.canEdit)
+                        }.padding().frame(maxWidth: .infinity, alignment: .leading).background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+            }.padding(32)
+        }
     }
     private var consoleView: some View {
         VStack(alignment: .leading, spacing: 8) {

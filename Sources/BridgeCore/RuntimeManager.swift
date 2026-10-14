@@ -47,6 +47,7 @@ public struct RuntimeManager: RuntimeManaging {
     }
     public func validate(_ runtime: WineRuntime, forLaunch: Bool) throws {
         try validateFile(runtime.executable)
+        try RuntimeIntegrity.validate(runtime)
         guard host.isMacOS else { throw BridgeError.unsupported("Wine execution requires a supported macOS host.") }
         if runtime.architecture == .unknown {
             throw BridgeError.invalidRuntime("Unknown runtime architecture. For a wrapper, select its provider-documented architecture.")
@@ -62,14 +63,14 @@ public struct RuntimeManager: RuntimeManaging {
         guard approved else { throw BridgeError.approvalRequired }
         try validate(runtime, forLaunch: false)
         let result = try await executor.run(.init(executable: runtime.executable, arguments: ["--version"],
-            workingDirectory: runtime.executable.deletingLastPathComponent(), timeout: 15, removingInheritedEnvironment: ["WINEARCH", "WINEPREFIX"]), output: output)
+            workingDirectory: runtime.executable.deletingLastPathComponent(), timeout: 15, removingInheritedEnvironment: ExecutionEnvironmentPolicy.managedKeys), output: output)
         let version = (result.stdout + "\n" + result.stderr).components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first { $0.range(of: #"(?i)^wine(?:-|\s+)(?:\d+(?:\.\d+)*|crossover\b)"#, options: .regularExpression) != nil }
         guard result.exitCode == 0, !result.wasSignalled, let version else {
             throw BridgeError.invalidRuntime("Runtime version probe failed or returned no Wine version line (exit \(result.exitCode)). Select the provider's Wine command-line executable inside its installed app, not an app launcher that may ignore --version. For Wine Devel in Downloads, move the app to Applications, open it normally, then reselect its executable. Do not disable macOS security controls.")
         }
-        var verified = runtime
+        var verified = try RuntimeIntegrity.record(runtime)
         verified.version = String(version.prefix(512))
         return verified
     }

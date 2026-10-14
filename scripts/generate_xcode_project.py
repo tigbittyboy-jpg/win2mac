@@ -71,7 +71,7 @@ for target, folder, extension, file_type in [
     source_phases[target] = add(target + "Sources", "PBXSourcesBuildPhase", buildActionMask=2147483647,
                                files=builds, runOnlyForDeploymentPostprocessing=0)
     product_refs[target] = add(target + "Product", "PBXFileReference", explicitFileType=file_type,
-                               includeInIndex=0, path=("lib" if target == "BridgeCore" else "") + target + "." + extension,
+                               includeInIndex=0, path=("lib" if target == "BridgeCore" else "") + ("Win2Mac" if target == "Bridge" else target) + "." + extension,
                                sourceTree="BUILT_PRODUCTS_DIR")
 
 project_id = identifier("Project")
@@ -79,8 +79,8 @@ targets = []
 for target, kind in [("BridgeCore", "library.static"), ("Bridge", "application"), ("BridgeCoreTests", "bundle.unit-test")]:
     settings = dict(common)
     settings.update({"PRODUCT_NAME": "$(TARGET_NAME)", "PRODUCT_BUNDLE_IDENTIFIER": "org.bridge-launcher." + target,
-                     "GENERATE_INFOPLIST_FILE": "YES", "CURRENT_PROJECT_VERSION": "19",
-                     "MARKETING_VERSION": "0.2.0"})
+                     "GENERATE_INFOPLIST_FILE": "YES", "CURRENT_PROJECT_VERSION": "20",
+                     "MARKETING_VERSION": "0.3.0"})
     linked = []
     dependencies = []
     phases = [source_phases[target]]
@@ -102,8 +102,8 @@ for target, kind in [("BridgeCore", "library.static"), ("Bridge", "application")
                          "GENERATE_INFOPLIST_FILE": "NO"})
     elif target == "Bridge":
         settings.update({"ENABLE_APP_SANDBOX": "NO", "ENABLE_HARDENED_RUNTIME": "YES",
-                         "INFOPLIST_KEY_CFBundleDisplayName": "Bridge",
-                         "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.utilities",
+                         "PRODUCT_NAME": "Win2Mac", "INFOPLIST_KEY_CFBundleDisplayName": "Win2Mac",
+                         "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.games",
                          "INFOPLIST_KEY_NSPrincipalClass": "NSApplication"})
     else:
         settings["SKIP_INSTALL"] = "YES"
@@ -132,7 +132,7 @@ project.mkdir(exist_ok=True)
 def reference(parent, target):
     extension = "xctest" if target.endswith("Tests") else "app"
     return ET.SubElement(parent, "BuildableReference", BuildableIdentifier="primary",
-                         BlueprintIdentifier=identifier(target + "Target"), BuildableName=target + "." + extension,
+                         BlueprintIdentifier=identifier(target + "Target"), BuildableName=("Win2Mac" if target == "Bridge" else target) + "." + extension,
                          BlueprintName=target, ReferencedContainer="container:Bridge.xcodeproj")
 
 

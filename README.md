@@ -1,6 +1,14 @@
-# Bridge
+# Win2Mac
 
 A native SwiftUI Windows compatibility launcher for Apple Silicon Macs. **Integrated preview**, licensed under MIT. Bridge delegates execution to a compatible, user-installed Wine engine. It does not implement Windows APIs, emulate a CPU, bundle a commercial engine, or promise universal game compatibility.
+
+## Win2Mac 0.3 source rebuild
+
+This working tree adds runtime executable identity checks, per-game graphics isolation, verified offline backups/settings rollback, reviewed Microsoft prerequisites, Windows Steam manifest import/launch, structured diagnostics, interrupted-run history and an observation-based compatibility matrix. Existing Bridge library IDs, data paths and graphics transactions are retained. The native product is now `Win2Mac.app`; the internal Xcode project/scheme remains Bridge.
+
+**This source revision has not been built or run on macOS here.** Linux backend XCTest passed 85 cases; it does not validate games, Wine or SwiftUI. Downloadable previews below are older Bridge builds and do not include this rebuild. No new app bundle or release was produced on Linux. Read the [architecture audit](docs/REBUILD_AUDIT.md) and [implementation, usage and acceptance status](docs/REBUILD_STATUS.md) before relying on new features.
+
+On an Apple Silicon Mac with Xcode 16+, `bash scripts/run_macos.sh` builds/tests and opens Win2Mac. In ordinary use, the native interface handles EXE import, reviewed execution, Steam, prerequisites, backups and settings without Terminal commands. No Wine engine, graphics library or game is bundled; select a legitimate installed provider and verify its requirements.
 
 ## Implemented
 

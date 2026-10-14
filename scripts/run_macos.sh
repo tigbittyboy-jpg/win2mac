@@ -35,7 +35,7 @@ printf '%s\n' 'Building Bridge and running its tests…'
 xcodebuild -project Bridge.xcodeproj -scheme Bridge -configuration Debug \
     -destination 'platform=macOS,arch=arm64' -derivedDataPath "$bridge_derived" \
     CODE_SIGN_IDENTITY=- test 2>&1 | tee "$bridge_logs/build.log"
-bridge_app="$bridge_derived/Build/Products/Debug/Bridge.app"
-[[ -d "$bridge_app" ]] || { printf '%s\n' 'The build did not produce Bridge.app.' >&2; exit 1; }
+bridge_app="$bridge_derived/Build/Products/Debug/Win2Mac.app"
+[[ -d "$bridge_app" ]] || { printf '%s\n' 'The build did not produce Win2Mac.app.' >&2; exit 1; }
 printf '%s\n' 'Tests passed. Opening Bridge…'
 open "$bridge_app"

@@ -1,3 +1,5 @@
+The following records the historical 0.2 preview. For this working tree's 0.3 rebuild and exact unverified boundaries, see [REBUILD_STATUS.md](REBUILD_STATUS.md).
+
 # Integrated overhaul — 0.2 preview
 
 ## Delivered

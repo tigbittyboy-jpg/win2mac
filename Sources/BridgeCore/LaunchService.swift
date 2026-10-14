@@ -27,35 +27,30 @@ public actor LaunchService: LaunchServing {
             throw BridgeError.unsupported("This provider requires a dedicated backend adapter; generic Wine commands are unavailable.")
         }
         try runtimes.validate(runtime, forLaunch: true)
+        let effectiveBottle = try ExecutionEnvironmentPolicy.effectiveBottle(application: application, bottle: bottle)
         let architecture = try ExecutableValidator.architecture(of: application.executable)
         if architecture == .x86 {
             guard runtime.supportsWindowsX86 == true else {
                 throw BridgeError.unsupported("This EXE is 32-bit Windows x86. In Runtimes, confirm and save provider-documented x86/WoW64 support on this Mac. A Wine version probe alone does not establish support.")
             }
-            guard bottle.graphics != .dxvkMoltenVK else {
+            guard effectiveBottle.graphics != .dxvkMoltenVK else {
                 throw BridgeError.unsupported("Bridge imports x64 DXVK libraries only. Create a separate bottle with Runtime Default graphics for this 32-bit EXE; keep your existing x64 game bottle intact.")
             }
         }
-        var environment = application.environment ?? [:]
-        let reserved = ["WINEPREFIX", "WINEARCH", "WINEDLLOVERRIDES", "WINE_D3D_CONFIG", "DYLD_INSERT_LIBRARIES", "DYLD_LIBRARY_PATH"]
-        guard environment.keys.allSatisfy({ !reserved.contains($0) && $0.range(of: "^[A-Za-z_][A-Za-z0-9_]*$", options: .regularExpression) != nil }),
-              environment.values.allSatisfy({ !$0.contains("\0") }) else {
-            throw BridgeError.unsupported("Invalid environment override. Prefix, architecture, loader and graphics variables are managed by Bridge.")
-        }
-        environment.merge(try graphics.environment(for: bottle.graphics)) { _, managed in managed }
-        environment["WINEPREFIX"] = try PrefixPolicy.canonical(bottle.prefix).path
+        let environment = try ExecutionEnvironmentPolicy.environment(application: application, bottle: bottle, graphics: graphics)
+        let arguments = application.steamAppID == nil ? [application.executable.path] + application.arguments : try SteamManager.launchArguments(application, bottle: bottle)
         running = true; defer { running = false }
         try await bottles.acquire(bottle)
         do {
-            if bottle.graphics == .dxvkMoltenVK {
+            if effectiveBottle.graphics == .dxvkMoltenVK {
                 try DXVKInstaller.validateInstallation(bottle)
             } else if DXVKInstaller.hasInstallation(bottle) {
                 throw BridgeError.invalidPrefix("This bottle has imported or incomplete DXVK files. Select its recorded DXVK backend or restore the original DLLs before launching.")
             }
             let result = try await executor.run(.init(executable: runtime.executable,
-                arguments: [application.executable.path] + application.arguments, environment: environment,
+                arguments: arguments, environment: environment,
                 workingDirectory: application.workingDirectory ?? application.executable.deletingLastPathComponent(),
-                removingInheritedEnvironment: ["WINEARCH", "WINEPREFIX"]), output: output)
+                removingInheritedEnvironment: ExecutionEnvironmentPolicy.managedKeys), output: output)
             await bottles.release(bottle)
             return result
         } catch {

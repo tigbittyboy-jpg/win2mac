@@ -28,6 +28,8 @@ public struct WineRuntime: Identifiable, Codable, Equatable, Sendable {
     public var supportsWindowsX86: Bool?
     public var supportsWindowsX64: Bool
     public var version: String?
+    public var provider: RuntimeProvider?
+    public var identity: RuntimeIdentity?
 
     public init(id: UUID = UUID(), name: String, executable: URL,
                 architecture: RuntimeArchitecture = .unknown, supportsWindowsX64: Bool = false,
@@ -46,6 +48,7 @@ public struct Bottle: Identifiable, Codable, Equatable, Sendable {
     public var runtimeID: UUID
     public var managed: Bool
     public var graphics: GraphicsBackend
+    public var requestedWindowsVersion: WindowsVersion?
 
     public init(id: UUID = UUID(), name: String, prefix: URL, runtimeID: UUID,
                 managed: Bool = false, graphics: GraphicsBackend = .runtimeDefault) {
@@ -74,6 +77,12 @@ public struct ApplicationEntry: Identifiable, Codable, Equatable, Sendable {
     public var isInstaller: Bool?
     public var workingDirectory: URL?
     public var environment: [String: String]?
+    public var graphicsOverride: GraphicsBackend?
+    public var steamAppID: String?
+    public var steamClient: URL?
+    public var compatibilityRecords: [CompatibilityRecord]?
+    public var launchHistory: [LaunchHistoryRecord]?
+    public var lastDiagnosis: LaunchDiagnosis?
 
     public init(id: UUID = UUID(), name: String, executable: URL, bottleID: UUID? = nil,
                 arguments: [String] = [], addedAt: Date = Date()) {
