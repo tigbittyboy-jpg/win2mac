@@ -572,14 +572,15 @@ final class BridgeModel: ObservableObject {
         next = snapshot
         if let index = next.applications.firstIndex(where: { $0.id == app.id }) { next.applications[index].lastExitCode = result.exitCode
             let failed = result.exitCode != 0 || result.wasSignalled
-            next.applications[index].lastDiagnosis = failed ? LaunchDiagnosis.classify(result: result) : nil
+            let completedDiagnosis = failed ? LaunchDiagnosis.classify(result: result) : nil
+            next.applications[index].lastDiagnosis = completedDiagnosis
             next.applications[index].lastFailure = failed ? next.applications[index].lastDiagnosis?.title : nil
             if let position = next.applications[index].launchHistory?.firstIndex(where: { $0.id == run.id }) {
                 next.applications[index].launchHistory?[position].state = failed ? .failed : .completed
                 next.applications[index].launchHistory?[position].elapsedSeconds = Self.elapsedSeconds(since: start)
                 next.applications[index].launchHistory?[position].exitCode = result.exitCode
                 next.applications[index].launchHistory?[position].wasSignalled = result.wasSignalled
-                next.applications[index].launchHistory?[position].diagnosis = next.applications[index].lastDiagnosis
+                next.applications[index].launchHistory?[position].diagnosis = completedDiagnosis
             }
         }
         try await save(next); stage = "Finished"
